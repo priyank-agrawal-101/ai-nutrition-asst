@@ -1,0 +1,38 @@
+# Local secrets; commit only placeholder configuration examples.
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.template
+
+# Installed dependencies and package caches; keep package-lock.json in Git.
+node_modules/
+.npm/
+.cache/
+
+# Generated Next.js / TypeScript build output.
+.next/
+/out/
+/dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated test reports and local browser authentication state.
+/coverage/
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.auth/
+
+# Temporary design checks, browser profiles, screenshots, and CLI caches.
+/.preview-work/
+/.tmp/
+
+# Local logs and operating-system metadata.
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep authored docs and HTML previews, source tests, migrations, and lockfiles.
+# Do not add blanket rules for *.html, *.pdf, docs/, or tests/.

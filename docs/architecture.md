@@ -1,6 +1,6 @@
 # Gusto NutriBite: Architecture
 
-Status: Draft for review. This is a proposed build design, not an implementation record.
+Status: Adopted M1 build baseline, 11 October 2026. Implementation, provider compatibility, and deployment remain unverified.
 
 Last updated: 11 October 2026.
 
@@ -15,31 +15,31 @@ Read this design with:
 | Source | Architectural input |
 | --- | --- |
 | [Original brief](problemStatement.txt) and [problem statement](problemStatement.md) | Structured answers, server-side model calls, stored conversations, safety enforcement, evaluation, and the retrieval extension. |
-| [Product specification](product-spec.md) | Requirement IDs and acceptance checks. Brief and Derived requirements constrain this design; Proposed requirements remain subject to review. |
-| [Product positioning](product-positioning.md) | Confirmed India-first audience and selected Gusto NutriBite identity, with proposed language and commercial strategy. Does not add features, change public contracts, or create launch dependencies. |
+| [Product specification](product-spec.md) | Brief, Derived, and Approved addition requirements constrain this design; future proposals do not authorize implementation. |
+| [Product positioning](product-positioning.md) | Confirmed India-first audience, English baseline, and selected Gusto NutriBite identity. Commercial ideas do not add features or launch dependencies. |
 | [UX flows](ux-flow.md) | Submission, refusal, new chat, refresh recovery, and retry behavior. |
 | [Efficiency guidance](token-optimization-and-efficiency.md) | Bounded context, calls, output, retries, and honest usage measurement. |
 
-**Current evidence:** The folder and Git remote were checked. The repository contains documentation and no application implementation. The technologies and numbers below are recommendations. No model access, hosting account, performance, safety, or deployment has been verified.
+**Current evidence:** The repository contains documentation and no application implementation. The stack and initial configuration defaults were adopted with the [implementation plan](phase-wise-implementation-plan.md). Exact versions, model access, hosting behavior, performance, safety, and deployment remain unverified.
 
-## 2. Proposed stack and scope
+## 2. Selected stack and scope
 
 Build one Next.js application with server modules separated by responsibility. Use a PostgreSQL database and a model-provider adapter. Deploy the application and database on Railway. This keeps the browser and API on one origin and avoids operating a separate frontend and backend for this prototype.
 
-| Area | Proposed choice | Reason and tradeoff |
+| Area | Selected baseline | Reason and tradeoff |
 | --- | --- | --- |
 | Language and runtime | TypeScript in strict mode; a supported Node.js LTS release | Shared types across the app, with runtime validation at trust boundaries. Pin compatible versions during scaffolding. |
 | Web application | Next.js App Router, React, and Node-runtime route handlers | One project serves the chat and API. Use ordinary HTTP handlers for the stable API. |
-| Styling | CSS Modules and a small set of shared CSS variables | Enough for the chat, input, states, and sources panel. Visual decisions belong in `design-guide.md`. |
+| Styling | CSS Modules and shared CSS variables | Adapt the existing [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html); record product-specific decisions during UI implementation. |
 | Runtime schemas | Zod, with a tested JSON Schema conversion for the provider | Validate incoming requests and outgoing content. TypeScript types alone cannot validate external data. |
 | Database | PostgreSQL in local development, tests, and production | Transactions and constraints support ownership, ordering, and duplicate prevention. Use a dedicated local database; do not use another project's database. |
 | Database access | Drizzle ORM and versioned SQL migrations | Keep normal queries typed while allowing explicit locking and database constraints. |
 | Model integration | OpenAI API as the first provider candidate, behind a server-only adapter | A concrete starting point from the brief's options. Exact model and endpoint stay open until structured-output compatibility, access, privacy, quality, latency, and cost checks pass. |
-| Hosting | Railway application service and PostgreSQL service | A long-running Node service fits the request lifecycle below. This proposes Railway alone; Vercel is not required by the interpreted brief. |
+| Hosting | Railway application service and PostgreSQL service | A long-running Node service fits this lifecycle. Railway alone is selected; Vercel is not an additional brief requirement. |
 | Automated checks | Vitest for unit/integration tests; Playwright for browser tests; GitHub Actions for CI | Test behavior at schema, database, and browser boundaries. Live model evaluation remains a separate activity. |
 | Package management | npm with a committed lockfile | Reproducible installation without adding another tool. |
 
-Do not add registration, a history dashboard, a vector database, Redis, a job broker, agents, or microservices for Milestone 1. The product's other [proposed exclusions](product-spec.md#scope) remain proposed. Evaluation uses scripts and reviewed artifacts, not an admin UI.
+Do not add registration, a history dashboard, a vector database, Redis, a job broker, agents, or microservices for Milestone 1. Follow the [M1 exclusions](product-spec.md#scope). Evaluation uses scripts and reviewed artifacts, not an admin UI. Use ordinary modules, one provider adapter, and a no-op retrieval boundary; do not create generic infrastructure around them.
 
 ### Alternatives considered
 
@@ -109,9 +109,9 @@ Only the server can access the database and provider. Browser text, stored messa
 
 ### Anonymous identity
 
-Propose anonymous browser sessions, consistent with the current UX. Create a cryptographically random session token on the server. Send it in an `HttpOnly`, `Secure` production cookie with `SameSite=Lax`, `Path=/`, and no broad domain scope. Store only a token hash in the database. The session is a bearer credential; never put it in a URL or browser-readable storage.
+Use anonymous browser sessions, consistent with the adopted UX. Create a cryptographically random session token on the server. Send it in an `HttpOnly`, `Secure` production cookie with `SameSite=Lax`, `Path=/`, and no broad domain scope. Store only a token hash in the database. The session is a bearer credential; never put it in a URL or browser-readable storage.
 
-Use a seven-day absolute session lifetime as an initial proposal. Enforce it in database queries as well as cookie expiry. This is access duration, not a promise about data retention. Clearing cookies or using another browser does not recover the old session.
+Use a seven-day absolute session lifetime as the initial default. Enforce it in database queries as well as cookie expiry. This is access duration; the retention policy separately bounds cleanup. Clearing cookies or using another browser does not recover the old session.
 
 Store the active conversation ID and in-flight submission/attempt IDs in `sessionStorage`, scoped to this application origin. This restores the same tab after refresh without keeping a second copy of messages. Cross-device history and unsent-draft recovery are outside this design. Session cookies may be shared by tabs; database constraints still prevent concurrent turns in the same conversation.
 
@@ -211,7 +211,7 @@ If the database is unavailable, status remains unknown in the browser. Offer Che
 
 ### Content contract
 
-The [API contract](api-contract.md#answer-content-and-citation-schema) owns the proposed content schema, citation fields, string limits, identifier rules, and allowed URL schemes. Its [resource schemas](api-contract.md#messages-attempts-and-turns) keep conversation, turn, attempt, status, response kind, and error metadata separate from answer content. These schemas remain drafts for review.
+The [API contract](api-contract.md#answer-content-and-citation-schema) owns the adopted content schema, citation fields, string limits, identifier rules, and allowed URL schemes. Its [resource schemas](api-contract.md#messages-attempts-and-turns) keep conversation, turn, attempt, status, response kind, and error metadata separate from answer content. Materialize and test these schemas; they are not implemented yet.
 
 The generator produces content; server code controls request status and response kind. Errors do not masquerade as successful assistant content. Do not generate citation placeholders in Milestone 1.
 
@@ -234,13 +234,12 @@ Paths, methods, payloads, and response codes are defined in the [API endpoint in
 | Read request status | Look up by turn ID or client submission ID, including when acceptance was not received. Never generate. |
 | Retry failed turn | Accept a distinct attempt ID; enforce the rules in Section 5. |
 | Health and readiness | Report process health separately from database/schema readiness. |
-| Delete session data | Define this capability if required by the approved privacy/deletion policy before public release. |
 
-Review and freeze the API contract before implementation. It defines unrecorded-submission lookup, retryable failures, active conflicts, unavailable conversations, and rate limits. Keep the same capabilities and response shapes in Milestone 2; do not add a retrieval-specific chat endpoint.
+Implement the adopted API contract and freeze its executable schemas before release. It defines submission lookup, retryable failures, active conflicts, unavailable conversations, and rate limits. Keep the same capabilities and response shapes in Milestone 2. Manual deletion is deferred as FB-001; no deletion or retrieval-specific endpoint is required in M1.
 
 ## 7. Safety enforcement
 
-Follow [SAFE-01 through SAFE-05](product-spec.md#safety). The architecture provides enforcement points; the draft [safety and security policy](safety-and-security.md) owns the detailed rules, and `prompt-spec.md` will own model instructions and template wording.
+Follow [SAFE-01 through SAFE-05](product-spec.md#safety). The architecture provides enforcement points; [safety and security](safety-and-security.md) owns detailed rules, and [prompt-spec.md](prompt-spec.md) owns instructions and template wording.
 
 ### Input gate
 
@@ -257,9 +256,9 @@ After schema validation, apply code rules to both the answer and claims for proh
 
 Approved input refusals and clarifications bypass generation and model output review; they still pass deterministic template and schema checks. If a provider refuses outside the expected schema, map that outcome to a documented safe error unless an explicitly reviewed provider-refusal mapping exists.
 
-This proposal permits up to three model calls for an ordinary answer: contextual classification, generation, and output review. Clear code-handled refusals use zero. Count usage for each call. Removing or combining a safety step requires passing comparable safety and quality evaluation first.
+The adopted baseline permits up to three model calls for an ordinary answer: contextual classification, generation, and output review. Clear code-handled refusals use zero. Count usage for each call. Removing or combining a safety step requires an explicit design change and passing comparable safety and quality evaluation.
 
-The [safety policy](safety-and-security.md#3-safety-policy) proposes behavior for mixed requests, ambiguous medical context, emergencies, minors, eating-disorder content, unrelated topics, and unsupported languages. Review and test those proposals before public release. Do not infer that every request outside the brief exclusions is safe; this design does not authorize medical personalization.
+The adopted [safety policy](safety-and-security.md#3-safety-policy) defines mixed, ambiguous, urgent, sensitive, harmful-food, unrelated, and unsupported-language behavior. Implement and test it before public operation. Do not infer that every request outside the brief exclusions is safe; this design does not authorize medical personalization.
 
 Required safety failures block public release. Passing a finite test set is evidence about those cases, not a guarantee for every user message.
 
@@ -271,7 +270,7 @@ Build context from the current conversation's saved user messages, completed ass
 
 Keep system instructions, schema, and safety rules stable and before changing conversation content where the provider permits. Never load repository documents or other conversations into chat context. Claim sources are metadata, not independent evidence.
 
-For Milestone 1, send the complete retained conversational context within a fixed budget. Do not summarize or silently remove older turns. When the next question would exceed the budget, reject it before model calls, preserve the existing chat, and explain that a new chat is needed. This proposed user-facing limit needs acceptance in the product spec and UX document.
+For Milestone 1, send the complete retained conversational context within a fixed budget. Do not summarize or silently remove older turns. When the next question would exceed the budget, reject it before model calls, preserve the existing chat, and explain that a new chat is needed. This behavior is adopted in the product spec and UX.
 
 Calculate each phase's request budget using the selected model's tokenizer or a validated conservative bound. Reserve room for system instructions, safety-review candidate content, and output. Do not equate characters with tokens or send a request beyond the verified model context limit.
 
@@ -281,7 +280,7 @@ Expose provider-neutral operations for classification, structured answer generat
 
 Before choosing an exact model:
 
-1. Verify account access and native schema-constrained output support for the proposed schemas, including nullable nested source objects.
+1. Verify account access and native schema-constrained output support for the adopted schemas, including nullable nested source objects.
 2. Verify how the endpoint reports truncation, refusal, errors, cancellation, usage, and unsupported schema features.
 3. First exercise candidate schemas and completion/error handling in an isolated adapter harness. After integrating a compatible candidate, run the fixed evaluation through the ordinary app pipeline under [evaluation.md](evaluation.md); a direct adapter probe is not end-to-end evaluation evidence.
 4. Pin explicit model identifiers and supported settings. Record unavailable or provider-controlled settings as such; do not assume temperature or seed controls exist.
@@ -289,16 +288,16 @@ Before choosing an exact model:
 
 The first provider candidate is not a validated model selection. Consult the [official OpenAI structured-output guide](https://developers.openai.com/api/docs/guides/structured-outputs) during implementation. Live documentation retrieval was unavailable while drafting this document; endpoint syntax and current model compatibility remain unverified. No API call or credential is needed to review this architecture.
 
-### Initial configuration proposals
+### Initial configuration defaults
 
-These are starting limits to validate, not measured service targets or accepted product requirements. Keep implemented values in one typed server configuration module and expose only safe UI limits through the API.
+These are adopted starting limits to validate against the selected model and deployment, not measured service targets. Keep implemented values in one typed server configuration module and expose only safe UI limits through the API. Material changes to user-facing behavior require a recorded product decision.
 
-| Setting | Proposed initial value | Enforcement |
+| Setting | Initial default | Enforcement |
 | --- | --- | --- |
 | Question size | 2,000 Unicode code points after trimming | Client and server use the same counting rule; reject whitespace-only input. |
 | HTTP request body | 16 KiB | Reject oversized encoded bodies before JSON parsing. |
 | Conversation context | At most 20 accepted user turns and 8,000 conversation tokens | Whichever limit is reached first. Whole-context policy applies to every model phase. |
-| Answer text / claims | At most 6,000 characters, 20 claims, and 600 characters per claim | Runtime acceptance limits; normal answers should be shorter. |
+| Answer text / claims | At most 6,000 Unicode code points, 20 claims, and 600 code points per claim | Runtime acceptance limits; normal answers should be shorter. |
 | Generation output | 2,000 provider output tokens initially | Includes the structured answer and claims. Adjust for the chosen model's output/reasoning accounting. Reject truncation. |
 | Safety verdict output | 256 provider output tokens per verdict initially | Small schema with no free-form rationale. Increase if the verified model requires more; never accept partial verdicts. |
 | Provider phase timeout | 10 seconds input classification, 25 seconds generation, 10 seconds output review | Each call uses the smaller of its phase limit and the remaining shared budget. |
@@ -334,7 +333,7 @@ Use foreign keys, unique submission/attempt IDs, and transactional state changes
 
 If a question cannot be saved, make no provider call. If an answer cannot be committed, do not show success. When the database cannot record a failure or usage, keep that outcome unknown until reconciliation; operational metrics must not manufacture zero cost or success.
 
-Visitor transcript/log/backup retention, deletion timing, and operator access have proposals in [safety and security](safety-and-security.md#7-privacy-retention-and-deletion-proposals). Review those choices and complete the deletion API/UX amendment before implementation and public release. New chat does not delete data; expiry closes access and starts the proposed cleanup schedule. Prevent deleted/revoked session data from being recreated by late attempt completion.
+Visitor transcript/log/backup retention and operator access follow [safety and security](safety-and-security.md#7-privacy-retention-and-cleanup). Verify enforcement and notices before public operation. New chat does not delete data; expiry/revocation closes access and starts bounded cleanup. Late completion or usage updates cannot recreate purged data. Manual deletion and its API/UX/receipt work are deferred; no live-session conversation tombstones are needed in M1.
 
 Keep local, test, preview, and production databases separate. Commit migrations; never run ad hoc destructive schema changes against production. Back up before risky migrations, verify restoration into a separate database, and keep rolling application versions compatible with the active schema.
 
@@ -355,7 +354,7 @@ No public evaluator endpoint, debugging route with transcripts, or browser datab
 
 ## 11. Proposed repository structure
 
-All paths below are planned. None of these code files exist yet.
+All paths below are planned. None of these code files exist yet. They describe responsibilities, not a requirement to scaffold empty directories or generic frameworks. Create modules when their phase needs them.
 
 ```text
 ai-nutrition-asst/
@@ -420,7 +419,7 @@ Provide:
 
 Record commit ID, prompt/schema/policy versions, model/settings, environment, and verification date for every evaluated release. A green hosting status does not prove the chat works. Keep rollback instructions compatible with schema changes; never erase stored conversations to fix a deployment.
 
-`deployment-and-operations.md` will own exact commands, environment names, maintenance scheduling, alerts, backups, incident handling, and restore procedures. No hosting resources are provisioned by this document.
+[Deployment and operations](deployment-and-operations.md) now provides the initial environment, maintenance, release, and recovery guidance. It owns exact commands, environment names, alerts, backups, and incident procedures as implementation makes them verifiable. No hosting resources are provisioned by these documents.
 
 ## 13. Milestone 2 extension
 
@@ -443,25 +442,16 @@ Verification now has dedicated owners: [testing.md](testing.md) defines software
 
 ### Implementation dependencies
 
-1. Settle the foundation stack/scope and materialise the [API contract](api-contract.md) and [data model](data-model.md) proposals. A scaffold with a fake provider can proceed independently of live model access; provider-facing schemas require the adapter compatibility check before live integration.
-2. Define safety policy, privacy, prompts, and edge cases. Agree on user-facing limits and history-limit behavior.
-3. Scaffold the project and persistence. Build session ownership, turn state, validation, and recovery against a fake provider first.
-4. Add the real provider adapter, input/output safety gates, and the full chat UI. Run software checks and the controlled evaluations.
-5. Deploy only after the [product release conditions](product-spec.md#completion-and-release) pass, then independently verify the public app.
+Follow the approved [implementation plan](phase-wise-implementation-plan.md) and the now-present [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance: build durable local chat with a fake provider, integrate the verified provider and UI, evaluate and clear release gates, then deploy and verify externally. Pre-deployment clearance does not require a result from a deployment that does not yet exist; M1 completion requires the later public checks too.
 
-Track remaining choices through the [README build decisions](../README.md#next-build-decisions). Add a separate detailed delivery plan only if this dependency order and the current work items cannot make implementation clear.
+### Remaining prerequisites
 
-### Decisions still requiring review
-
-| Decision | Current recommendation or gap | Resolve before |
+| Prerequisite | Current position | Resolve before |
 | --- | --- | --- |
-| Stack and hosting | Next.js, TypeScript, PostgreSQL, Drizzle, Railway; all proposed. | App scaffolding and provisioning |
-| Provider/model | OpenAI first candidate; exact model, account access, endpoint, settings, and current schema support unverified. | Live integration |
-| Audience and language | India-first everyday adults with global room is confirmed; the initial segment, English-language scope, and sensitive-use handling remain proposals to review. | Prompt and evaluation design |
-| Proposed UX/product scope | Anonymous session, same-tab recovery, new chat, input limits, notice, and accessibility need acceptance. | Final API and UI behavior |
-| Limits and budget | Section 8 values are unmeasured proposals; traffic, monthly spend, and expected response time need agreement. | Public release |
-| Privacy and deletion | Review the safety document's retention, access, and notice proposals; complete the proposed session-wide deletion API/UX amendment. | Collecting real visitor data |
-| Safety details | Review and test the safety policy's mixed, ambiguous, sensitive, unsupported-language, and emergency rules. | Safety implementation and public release |
-| Source contract | Review the nullable citation object and error/refusal envelope in the API contract before freezing it. | Milestone 1 API implementation |
+| Tooling and database | Stack selected; compatible versions and isolated PostgreSQL not provisioned. | Database integration |
+| Provider/model | OpenAI first candidate; exact account, endpoint, model, settings, schemas, privacy, and call budget unverified. | Live integration |
+| Visual system | Existing Wise reference/preview selected as the UI starting point; adapt and verify chat-specific details without creating duplicate design documents. | During UI implementation |
+| Evaluation | Method and questions exist; executable snapshot, references, reviewer, artifacts, and funded run remain outstanding. | Live evaluation |
+| Operating evidence | Initial limits/retention adopted; verify actual hosting behavior, spend/alerts, notices, operator/contact, and recovery. | Public operation |
 
-Use the [current build decisions](../README.md#next-build-decisions) for the next work slice. Visual design still uses the [Gusto NutriBite identity](product-positioning.md) and UX; technical draft choices are not silently approved by completing another document.
+The [README](../README.md#next-build-decisions) routes these prerequisites. Do not require a manual-deletion amendment, additional services, or speculative retrieval design before M1.

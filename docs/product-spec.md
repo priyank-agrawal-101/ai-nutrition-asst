@@ -1,6 +1,6 @@
 # Gusto NutriBite: Product Specification
 
-Status: Draft for review. No implementation or test completion is claimed.
+Status: Approved M1 implementation baseline, 11 October 2026. No implementation or test completion is claimed.
 
 Source: [problemStatement.md](problemStatement.md).
 
@@ -12,11 +12,14 @@ Requirement labels:
 
 - **Brief:** Required by the source.
 - **Derived:** Needed to make a source requirement work.
+- **Approved addition:** A previously proposed choice accepted for M1 on 11 October 2026.
 - **Proposed:** An added choice that still needs review.
+
+The approved [implementation plan](phase-wise-implementation-plan.md) records the delivery sequence. The owner accepted the draft chat/usability behavior, English scope, safety policies `POL-06`–`POL-12`, and the proposed single-app stack. The plan adopts existing configuration/retention values as initial defaults, subject to technical verification. Manual session-wide deletion is outside the assignment and deferred as [FB-001](feature-backlog.md#backlog); automatic expiry, revocation, and cleanup remain in M1.
 
 ## Users
 
-Confirmed audience direction: India-first everyday adults, with room to expand globally. English at launch and an initial focus on adults making household food choices are proposed in [product positioning](product-positioning.md#6-audience-and-india-first-principles). Its personas are hypotheses to validate, not completed research.
+Confirmed audience direction: India-first everyday adults, with room to expand globally. English at launch and an initial focus on adults making household food choices are adopted from [product positioning](product-positioning.md#6-audience-and-india-first-principles). Its personas remain hypotheses, not completed research.
 
 | User | Needs |
 | --- | --- |
@@ -32,7 +35,7 @@ Milestone 1 is a text chatbot using the model's own knowledge. It stores convers
 
 Milestone 2 adds retrieval: finding source material to support answers. Citations must fit the existing interface and response format.
 
-**Proposed exclusions:** registration, cross-device history, nutrition profiles, calorie tracking, meal plans, image recognition, voice, wearable integrations, payments, and an evaluator dashboard.
+**M1 exclusions:** registration, cross-device history, nutrition profiles, calorie tracking, meal plans, image recognition, voice, wearable integrations, payments, an evaluator dashboard, and manual session-wide deletion.
 
 Excluded features are not future commitments. Safety limits apply in both milestones. References to "this week" in the brief mean Milestone 1; no delivery date is set.
 
@@ -43,12 +46,12 @@ Excluded features are not future commitments. Safety limits apply in both milest
 | CHAT-01 | Brief | Provide a text input and message list showing who sent each message. | A user submits a permitted question and reads the matching answer. |
 | CHAT-02 | Derived | Use the active conversation to understand follow-ups. | A follow-up uses the previous topic; it never uses another conversation's messages. |
 | CHAT-03 | Brief | Store messages in conversation order. | Saved exchanges can be retrieved in order and survive a server restart. |
-| CHAT-04 | Proposed | Allow a new conversation and restore the active one after a page refresh. | A new chat starts without old context. Refreshing restores saved messages within the supported browser session. |
+| CHAT-04 | Approved addition | Allow a new conversation and restore the active one after a page refresh. | A new chat starts without old context. Refreshing restores saved messages within the supported browser session. |
 | CHAT-05 | Derived | Show waiting, success, and failure states. | The user can tell each state apart. Repeated submission during a pending request does not create duplicate accepted turns. |
-| CHAT-06 | Proposed | Reject empty or oversized input before calling the model. | Invalid input gets a clear explanation without a model call. Input at the chosen size limit is accepted. |
+| CHAT-06 | Approved addition | Reject empty or oversized input before calling the model. | Invalid input gets a clear explanation without a model call. Input at the chosen size limit is accepted. |
 | CHAT-07 | Derived | Handle timeouts, provider errors, invalid output, and storage failures. | Waiting ends, the question remains visible, and an error explains that the answer did not complete. Failed output is not shown as a successful answer. |
 
-`ux-flow.md` defines the steps for retrying, starting a chat, and handling expired sessions. Input size and session duration remain open.
+[UX flows](ux-flow.md) define retry, new chat, and expired-session behavior. Initial defaults are 2,000 Unicode code points per normalized question, a 16 KiB body, seven-day absolute session access, and at most 20 accepted turns or 8,000 conversation tokens. The [API](api-contract.md#question-normalization) owns counting/normalization; [architecture](architecture.md#initial-configuration-defaults) owns execution limits. Reject a new question that cannot fit the full history before generation, preserve the chat, and offer New chat. Do not silently summarize or discard earlier turns. Same-tab refresh recovery does not promise unsent-draft or cross-device recovery.
 
 ## Answers and sources
 
@@ -63,7 +66,7 @@ A **schema** defines the required fields, types, and allowed values in a respons
 | ANS-03 | Brief | Reject responses that fail validation. | Malformed, incomplete, cut-off, or invalid output is never displayed or saved as a successful answer. |
 | ANS-04 | Derived | Include the answer's factual statements in its claims list. | The prompt requests this, and evaluation checks for missing or conflicting claims. |
 | ANS-05 | Brief | Show a sources panel beside the conversation in the main layout. | It contains no source entries in Milestone 1. An empty-state message is allowed; placeholder citations are not. |
-| ANS-06 | Proposed | Explain that answers lack retrieved sources and may be wrong. | Users can find a clear, accessible notice in the chat experience. |
+| ANS-06 | Approved addition | Explain that answers lack retrieved sources and may be wrong. | Users can find a clear, accessible notice in the chat experience. |
 | ANS-07 | Derived | Keep answers relevant and concise; state uncertainty when needed. | Evaluation checks unsupported certainty and answers too vague to help. `prompt-spec.md` sets answer length and style. |
 
 `api-contract.md` defines field names, types, and allowed empty lists. A refusal or clarification with no factual statements may have no claims; do not invent claims to fill the list.
@@ -80,7 +83,7 @@ A source named in answer text is not verified evidence. Record invented attribut
 | SAFE-04 | Brief | Enforce safety limits in code as well as the prompt. | Code checks are present and tested on direct and contextual requests. Prompt instructions alone do not pass. |
 | SAFE-05 | Derived | Answer permitted educational questions. | Evaluation records unnecessary refusals and vague answers, including on general nutrient requirements. |
 
-The draft [safety and security policy](safety-and-security.md) defines rules for ambiguous, mixed, unrelated, and sensitive requests. `edge-cases.md` will list examples that check those rules.
+The adopted [safety and security policy](safety-and-security.md) defines ambiguous, mixed, unrelated, urgent, sensitive, and harmful-food handling under `POL-06`–`POL-12`. The [edge-case catalogue](edge-cases.md) lists examples; [evaluation](evaluation.md) and [testing](testing.md) define how to verify them.
 
 Record every observed safety failure. Passing a finite test set does not guarantee safety for all requests; release checks below still apply.
 
@@ -90,11 +93,11 @@ Record every observed safety failure. Passing a finite test set does not guarant
 | --- | --- | --- | --- |
 | SYS-01 | Brief | Make model calls from the backend. | The browser uses the app backend and receives no provider credentials. It does not call the model provider directly. |
 | SYS-02 | Derived | Separate visitors' conversations. | Changing a conversation ID does not let a visitor read or add to someone else's chat. |
-| SYS-03 | Proposed | Support desktop, mobile, and keyboard use. | Input, messages, errors, and sources work at the sizes defined in `design-guide.md`, with labels and visible keyboard focus. |
+| SYS-03 | Approved addition | Support desktop, mobile, and keyboard use. | Input, messages, errors, and sources work at the widths recorded during UI implementation, using the existing design references, with labels and visible focus. |
 | SYS-04 | Derived | Limit request duration, context size, output size, and retries. | Configured limits are enforced. Each request ends with a valid answer or visible error within the service timeout. |
-| SYS-05 | Proposed | Measure efficiency changes. | Claimed savings have usage or response-time measurements and passing quality/safety checks under comparable conditions. Follow [the efficiency guide](token-optimization-and-efficiency.md). |
+| SYS-05 | Approved addition | Measure efficiency changes. | Claimed savings have usage or response-time measurements and passing quality/safety checks under comparable conditions. Follow [the efficiency guide](token-optimization-and-efficiency.md). No optimization project or benchmark dashboard is required. |
 
-Do not require medical records or a nutrition profile to ask general questions. Users may still share personal information in messages. Decide storage duration, deletion, logging, access, and user notice before public release.
+Do not require medical records or a nutrition profile. Users may still share personal information. Enforce the [retention schedule](safety-and-security.md#retention-schedule): deny access at expiry/revocation and purge app-held payload within 24 hours. Verify logging, access, provider/backup retention, and notice details before public operation. Manual deletion is deferred; do not display or promise that control.
 
 ## Prompts and evaluation
 
@@ -124,7 +127,7 @@ General prompt, software, and safety fixes are allowed. Preserve earlier results
 | NEXT-01 | Brief | Keep the interface, endpoints, and response schema unchanged when adding retrieval. | Before finalizing the API contract, confirm sources can hold citation data later without changing the response shape. Milestone 1 still enforces `ANS-02`. |
 | NEXT-02 | Brief | Reuse the same 10 questions for Milestone 2. | Keep question IDs, wording, original responses, run conditions, and observations for comparison. |
 
-Architecture will choose Vercel, Railway, or both; the brief's deployment list and tools table leave that choice open.
+Railway alone is selected for the app and PostgreSQL. The brief's deployment tools allow this choice; Vercel is not an additional M1 requirement. Actual account capacity, cost, and hosting behavior still need verification.
 
 `api-contract.md` must define a source field that accepts citation data or `null`. Milestone 1 requires `null`; it must not restrict all future versions to `null`.
 
@@ -132,7 +135,7 @@ Architecture will choose Vercel, Railway, or both; the brief's deployment list a
 
 Milestone 1 is ready for review when:
 
-1. Proposed choices are resolved, and accepted requirements have passing evidence.
+1. The approved baseline is implemented, phase-specific prerequisites are resolved, and accepted requirements have passing evidence.
 2. The public app completes the stored-conversation and structured-answer flow.
 3. Required software and safety checks pass.
 4. The 10-question run and three-response comparison have recorded results and failure counts.
@@ -140,20 +143,19 @@ Milestone 1 is ready for review when:
 
 Unsupported or inconsistent claims may remain: recording them is part of this milestone. They must not be hidden.
 
+Pre-deployment clearance covers local software/safety/evaluation evidence and operating readiness. Deployment and external-browser verification follow that clearance; only then can the public-app conditions and M1 completion be confirmed. Do not require a public verification result before deploying the candidate.
+
 Broken response validation, exposed credentials, access to another visitor's chat, or unresolved failures of required safety checks block public release. Unsafe factual answers also require review under the safety policy.
 
-## Open decisions
+## Remaining implementation prerequisites
 
-| Decision | Where to decide | Needed before |
+| Prerequisite | Owning document | Needed before |
 | --- | --- | --- |
-| Accept or revise Proposed requirements and exclusions | Product spec | Final scope |
-| Initial segment and supported language within the confirmed India-first adult audience | Product positioning and product spec, informed by safety rules | Prompt and evaluation design |
-| Framework, model/provider, structured-output support, storage, and hosting | Architecture | App setup |
-| Endpoints, source fields, refusal format, and error format | API contract | API implementation |
-| Session identity, stored-message lifetime, and storage-failure handling | Architecture and data model, following safety/privacy rules | Conversation implementation |
-| Mixed, ambiguous, unrelated, and sensitive requests | Safety and security | Safety implementation |
-| Data deletion, logging access, user notice, and abuse prevention | Safety and security | Public release |
-| Input/history/output limits, timeout, retries, cost, response time, availability, and expected traffic | Product spec for user-facing limits; architecture for implementation | Request handling and deployment |
-| Questions, scoring, run conditions, and failure counting | Evaluation | First recorded evaluation |
+| Pin compatible runtime/packages/PostgreSQL and provision isolated databases | Architecture, code conventions, testing | Database integration; independent scaffolding can proceed |
+| Materialize the adopted public/runtime schemas and prove their invariants | API contract and data model | API completion |
+| Verify exact model/endpoint, access, native schema support, settings, privacy, and a bounded call budget | Architecture and safety/security | Real model integration |
+| Adapt and verify chat visual details and supported widths | Existing [design reference](design-references/wise/DESIGN.md), [preview](design-references/wise/preview.html), UX, and testing | During UI implementation; no new guide prerequisite |
+| Freeze executable questions, assign reviewer/artifact handling, assemble references, and fund the run | Evaluation | Recorded live evaluation |
+| Verify hosting limits, retention, notices, operator/contact, budget/alerts, and recovery | Safety/security and deployment/operations | Public operation |
 
-No numerical performance targets or operating budget are set yet. Apply the [README writing rules](../README.md#writing-rules) when changing this specification.
+No numerical performance target or monetary budget is set. Initial limits are configuration defaults, not measured service promises. Follow the [implementation plan](phase-wise-implementation-plan.md) and [README writing rules](../README.md#writing-rules) when decisions change.

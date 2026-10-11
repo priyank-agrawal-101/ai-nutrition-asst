@@ -20,24 +20,25 @@ The order below is a reading map, not a mandatory document-production queue. Cre
 | --- | --- | --- | --- |
 | 1 | [docs/problemStatement.md](docs/problemStatement.md) | Project brief and milestone goals. | Created |
 | 2 | [Product positioning and brand guidelines](docs/product-positioning.md) | Positioning, audience/personas, name and meaning, tagline, brand promise, voice, copy style, and business direction. | Created; strategy draft |
-| 3 | [docs/product-spec.md](docs/product-spec.md) | Required behavior, scope, and acceptance checks. | Draft |
-| 4 | [docs/ux-flow.md](docs/ux-flow.md) | User steps, conversation states, and error handling. | Draft |
-| 5 | [docs/architecture.md](docs/architecture.md) | Technology choices, app parts, and how they connect. | Draft |
-| 6 | [docs/api-contract.md](docs/api-contract.md) | Endpoints, request/response formats, validation, and errors. | Draft |
-| 7 | [docs/data-model.md](docs/data-model.md) | Stored data, relationships, and database changes. | Draft |
-| 8 | [docs/safety-and-security.md](docs/safety-and-security.md) | Detailed safety rules, enforcement, privacy, access, and abuse prevention. | Draft |
-| 9 | `docs/design-guide.md` + `docs/design-guide-preview.html` | Appearance, components, mobile layouts, and accessibility, with a visual HTML preview. | Guide and preview planned |
-| 10 | [docs/prompt-spec.md](docs/prompt-spec.md) | Model instructions, response templates, context assembly, and reasons for prompt changes. | Draft |
-| 11 | [docs/edge-cases.md](docs/edge-cases.md) | Central catalogue of corner scenarios across questions, safety, context, APIs, model output, recovery, data, security, UI, operations, and retrieval. | Draft; cases not run |
-| 12 | [docs/evaluation.md](docs/evaluation.md) | Ten fixed questions, safety-suite selection, scoring, consistency checks, failure counts, run records, and milestone comparison. | Draft; evaluation not run |
-| 13 | [docs/testing.md](docs/testing.md) | Test layers, isolated harness, fault injection, command/CI contract, and software evidence. | Draft; checks not implemented |
-| 14 | [docs/code-conventions.md](docs/code-conventions.md) | Implementation style, imports, schema ownership, parsing, typed outcomes, and dependency discipline. | Draft |
+| 3 | [docs/product-spec.md](docs/product-spec.md) | Required behavior, scope, and acceptance checks. | Adopted M1 baseline |
+| 4 | [docs/ux-flow.md](docs/ux-flow.md) | User steps, conversation states, and error handling. | Adopted behavior; not built |
+| 5 | [docs/architecture.md](docs/architecture.md) | Technology choices, app parts, and how they connect. | Stack and baseline selected; not built |
+| 6 | [docs/api-contract.md](docs/api-contract.md) | Endpoints, request/response formats, validation, and errors. | Adopted contract; not implemented |
+| 7 | [docs/data-model.md](docs/data-model.md) | Stored data, relationships, and database changes. | Adopted baseline; no database |
+| 8 | [docs/safety-and-security.md](docs/safety-and-security.md) | Safety, privacy, access, and abuse prevention. | Adopted baseline; controls unverified |
+| 9 | [Wise design reference](docs/design-references/wise/DESIGN.md) + [HTML preview](docs/design-references/wise/preview.html) | Existing visual starting point for chat appearance, components, and responsive presentation. | Present; adapt and verify during UI implementation |
+| 10 | [docs/prompt-spec.md](docs/prompt-spec.md) | Instructions, templates, context, and prompt change reasons. | Adopted baseline; not evaluated |
+| 11 | [docs/edge-cases.md](docs/edge-cases.md) | Central scenario catalogue, with M1, deferred, and M2 applicability. | Cases not run |
+| 12 | [docs/evaluation.md](docs/evaluation.md) | Ten questions, safety selection, scoring, consistency, and comparisons. | Method adopted; evaluation not run |
+| 13 | [docs/testing.md](docs/testing.md) | Test layers, isolation, faults, command/CI contract, and evidence. | Baseline; checks not implemented |
+| 14 | [docs/code-conventions.md](docs/code-conventions.md) | Code style, imports, schemas, parsing, and dependency discipline. | Implementation baseline |
 | 15 | [docs/token-optimization-and-efficiency.md](docs/token-optimization-and-efficiency.md) | Reducing model usage, cost, response time, and repeated work. | Initial guidance |
-| 16 | `docs/phase-wise-implementation-plan.md` | Detailed delivery tracking if the existing architecture/build decisions are insufficient. | Create only if needed |
-| 17 | `AGENTS.md` (project root) | Short routing instructions linking authoritative docs and actual commands. | Add when useful during scaffolding |
-| 18 | `docs/deployment-and-operations.md` | Hosting, environment settings, health checks, monitoring, and recovery. | Planned |
-| 19 | [docs/feature-backlog.md](docs/feature-backlog.md) | Future ideas and optional improvements awaiting explicit scope decisions. | Created; empty backlog |
+| 16 | [docs/phase-wise-implementation-plan.md](docs/phase-wise-implementation-plan.md) | Four delivery phases, dependencies, completion criteria, and evidence tracking. | Approved; implementation not started |
+| 17 | [AGENTS.md](AGENTS.md) | Short authority map, project boundaries, and planned/verified commands. | Created; implementation guidance |
+| 18 | [docs/deployment-and-operations.md](docs/deployment-and-operations.md) | Environments, hosting, settings, health, maintenance, and recovery. | Initial guidance; operating commands and controls unverified |
+| 19 | [docs/feature-backlog.md](docs/feature-backlog.md) | Future ideas awaiting explicit scope decisions. | FB-001 manual deletion deferred |
 | 20 | [docs/product-roadmap.md](docs/product-roadmap.md) | M1/M2 product direction, milestone outcomes, and unresolved future scope. | Initial roadmap; delivery not started |
+| 21 | [Problem-statement comparison](docs/problem-statement-alignment.md) | Simple assignment-to-plan coverage, approved additions, and complexity boundaries. | Documentation audit; no implementation evidence |
 
 [Project documentation: behind the scenes](docs/project-documentation.md) is the short record of our approach, completed steps, and lessons for demos and future projects. It is a progress record, not another specification.
 
@@ -45,16 +46,16 @@ Create `docs/failure-log.md` when evaluations start. It holds actual results usi
 
 ## Design documents and previews
 
-Create a companion **HTML preview** whenever we create a Design Guide, and reuse this approach in future projects. For Gusto NutriBite, the planned pair is `docs/design-guide.md` and `docs/design-guide-preview.html`. The preview should show the guide's colours, typography, spacing, components, interaction states, and desktop/mobile layouts. Keep it aligned with the guide as design decisions change. The Markdown guide records the decisions; the preview makes them easy to inspect visually.
+Use the existing design files below directly for M1, as confirmed by the owner. A new `design-guide.md`/preview pair is not a prerequisite or a separate documentation task. Record necessary chat-specific choices in UX/testing and implemented tokens; verify the actual UI at desktop/mobile widths, including focus, contrast, reading, and error/source states.
 
-The preview is a companion artifact within the Design Guide entry, not an additional foundation document or launch dependency. Check it in a browser at desktop and mobile widths, and include an offline viewing option and print styles.
+If a distinct Design Guide is explicitly requested later, pair it with an HTML preview and keep both aligned. The existing reference preview already provides an offline viewing option and print styles; it is not an additional launch dependency.
 
 Current design references:
 
 - [Wise design reference](docs/design-references/wise/DESIGN.md): the imported getdesign reference, preserved as source material.
 - [Wise visual preview](docs/design-references/wise/preview.html): an interactive, offline companion with colours, type, components, and illustrative Gusto NutriBite adaptations. Open the file in a browser; use **Print / save PDF** for a printable view.
 
-The Wise files are inspiration for the future Gusto NutriBite Design Guide. They are separate from the product's final design decisions and do not change its scope.
+The Wise files are the visual starting point for implementation, not proof of application behavior or accessibility. Adapt them to Gusto NutriBite's chat and preserve the source assets. Pricing, authentication, and other illustrative reference surfaces do not expand product scope.
 
 ## Files to keep out of Git
 
@@ -86,17 +87,15 @@ Add local setup instructions here when the app exists. Link to the prompt, respo
 
 ## Next build decisions
 
-The testing and code-conventions baselines are written. Resolve the remaining decisions in their existing homes, then implement the smallest useful foundation with its tests. Do not create another planning file by default.
+The [implementation plan](docs/phase-wise-implementation-plan.md) is created and approved; the [assignment comparison](docs/problem-statement-alignment.md) makes scope coverage and additions easy to review. [Agent guidance](AGENTS.md) and the [initial operations baseline](docs/deployment-and-operations.md) are now present. Next begin Phase 1, pinning compatible tooling and establishing an isolated database. No app, runnable npm scripts, tests, evaluation, or deployment exists yet.
 
 | Work boundary | Decision or evidence needed | Authoritative home |
 | --- | --- | --- |
-| Scaffold and persistence | Settle the proposed stack; pin compatible runtime/package/database versions and materialise the v1 contracts. The test harness can use a fake provider. | [Architecture dependencies](docs/architecture.md#implementation-dependencies), [API contract stability](docs/api-contract.md#contract-stability), and [tooling conventions](docs/code-conventions.md#2-typescript-tooling-and-source-style). |
+| Scaffold and persistence | Stack selected. Pin compatible versions, establish isolated PostgreSQL, and materialize v1 contracts. A fake provider supports independent local development. | [Architecture dependencies](docs/architecture.md#implementation-dependencies), [API contract](docs/api-contract.md#contract-stability), and [conventions](docs/code-conventions.md#2-typescript-tooling-and-source-style). |
 | Real model integration | Verify native schema support, raw-output/completion handling, effective settings, and account access with an isolated adapter harness; then evaluate through the ordinary app pipeline. | [Provider adapter](docs/architecture.md#provider-adapter). |
-| Adopted safety behaviour | Resolve the detailed policy proposals before encoding their expected routing. Keep required brief exclusions fixed. | [Safety decisions](docs/safety-and-security.md#12-decisions-and-next-document). |
-| Deletion and real visitor data | Complete the existing deletion API/UX/receipt amendment; do not infer an endpoint from a policy paragraph. | [API privacy gap](docs/api-contract.md#privacy-work-still-required). |
-| Chat appearance and accessibility | Specify the remaining visual decisions before accepting the UI. | Design work described below, using the existing UX and brand owners. |
-| Live operation | Confirm budget, retention, hosting behaviour, and recovery evidence before public traffic. | [Architecture operations](docs/architecture.md#12-deployment-and-operations) and [safety release review](docs/safety-and-security.md#release-review). |
+| Adopted safety behavior | Implement/test accepted policies and permitted controls; keep brief exclusions fixed. | [Safety handoff](docs/safety-and-security.md#12-decisions-and-implementation-handoff). |
+| Visitor data | Implement expiry/revocation and automatic cleanup; verify notices/provider/backup retention. Manual deletion is deferred, not a blocking contract gap. | [Privacy boundary](docs/api-contract.md#privacy-implementation-boundary). |
+| Chat appearance and accessibility | Use existing Wise reference/preview; record and verify product-specific choices during UI implementation. | [Design files](#design-documents-and-previews), [UX](docs/ux-flow.md), and [testing](docs/testing.md). |
+| Live operation | Confirm budget, retention, hosting behaviour, and recovery evidence before public traffic. | [Operations guidance](docs/deployment-and-operations.md) and [safety release review](docs/safety-and-security.md#release-review). |
 
-The detailed contract/design gaps block their affected work, not all independent scaffolding. This table routes decisions; their values and acceptance rules remain in the linked documents.
-
-The Design Guide and its companion HTML preview remain outstanding: `docs/design-guide.md` and `docs/design-guide-preview.html`. Use the [Gusto NutriBite identity and product positioning](docs/product-positioning.md), the problem statement, and existing UX states, with the [Wise reference preview](docs/design-references/wise/preview.html) as visual inspiration. Cover visual design, components, mobile behavior, and accessibility. The positioning document adds no launch dependencies or approval steps.
+Prerequisites block their affected phase, not every independent task. The linked owners retain exact values and acceptance rules. Existing design files are included in the plan; no duplicate guide is required. Backlog ideas and M2/M3 roadmap entries do not enter M1 without an explicit scope decision.

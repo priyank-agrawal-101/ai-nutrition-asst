@@ -1,6 +1,6 @@
 # Gusto NutriBite: Prompt Specification
 
-Status: Draft for review. This is a build specification for model instructions and server-owned response templates. No prompts are implemented, evaluated, or deployed.
+Status: Adopted M1 prompt baseline, 11 October 2026. No prompts are implemented, evaluated, or deployed.
 
 Last updated: 11 October 2026.
 
@@ -17,16 +17,16 @@ This document owns prompt text and change reasons. It is one part of the build s
 | [Problem statement](problemStatement.md) and [original brief](problemStatement.txt) | Product scope, required exclusions, null sources, structured output, fixed-question evaluation, and the retrieval milestone. |
 | [Product specification](product-spec.md#prompts-and-evaluation) | `PROMPT-01`–`PROMPT-02`, `ANS-01`–`ANS-07`, `SAFE-01`–`SAFE-05`, and evaluation requirements. |
 | [Product positioning](product-positioning.md#13-content-and-copy-style-guide) | Selected identity, India-first audience, plain language, Indian English, and truthful capability descriptions. |
-| [Safety and security](safety-and-security.md#3-safety-policy) | Policy IDs, precedence, proposed sensitive-use rules, code enforcement, and privacy. |
+| [Safety and security](safety-and-security.md#3-safety-policy) | Policy IDs, precedence, adopted sensitive-use rules, code enforcement, and privacy. |
 | [API contract](api-contract.md#answer-content-and-citation-schema) | Public content fields, strict validation, source shape, response kinds, and errors. |
 | [Architecture](architecture.md#7-safety-enforcement) | Phase order, provider boundary, context, timeouts, and call limits. |
 | [Data model](data-model.md#attempt-configuration-and-context) | Context reconstruction, attempt manifests, phase metadata, and usage records. |
 | [UX flows](ux-flow.md#ux-04-receive-a-refusal) | Completed refusals, hidden invalid candidates, visible errors, and recovery. |
 | [Efficiency guidance](token-optimization-and-efficiency.md) | Bounded requests, measured caching, complete usage accounting, and comparable evaluation. |
 
-The brief's exclusions and source rules are required. English-only support, `POL-06`–`POL-12`, numerical limits, and the proposed stack remain draft choices in their owning documents. The exact prompts below form a **proposed baseline that includes those policy proposals**; writing them here does not approve or prove them. If a proposal changes, revise the relevant blocks and tests together. Do not remove a safety rule to fit a token budget.
+The brief's exclusions and source rules are required. English scope, `POL-06`–`POL-12`, the stack, and initial limits are adopted under the [implementation plan](phase-wise-implementation-plan.md). Literal prompts/templates below are the implementation baseline, still unevaluated; draft IDs do not imply pending policy approval. Record later wording/routing changes and rerun required evaluation. Do not remove safety rules to fit a token budget.
 
-The missing Design Guide does not prevent this document from defining prompt behaviour. No design, tracking, meal-planning, clinical, or research features are added here.
+Use the existing [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html) for UI work. They do not change prompt behavior or add tracking, meal-planning, clinical, or research features.
 
 ## 2. Prompt components and routing
 
@@ -114,7 +114,7 @@ Compute and verify the versioned context digest as the data model requires. A ch
 
 ### PS-03: Capacity and continuity
 
-Follow the [architecture's limits](architecture.md#initial-configuration-proposals): proposed bounds are 20 accepted user turns and 8,000 conversation tokens. Refused and failed accepted turns count; explicit retries do not add turns. These are conversation bounds, not the total provider input allowance.
+Follow the [architecture's limits](architecture.md#initial-configuration-defaults): initial bounds are 20 accepted user turns and 8,000 conversation tokens. Refused and failed accepted turns count; explicit retries do not add turns. These are conversation bounds, not the total provider input allowance.
 
 Before accepting a question, budget for every phase: instructions, schema overhead where applicable, full context, maximum candidate for review, and reserved output/reasoning allowance. Use the selected model's tokenizer or a validated conservative bound. Count code points for API string limits; do not confuse them with tokens or JavaScript string length.
 
@@ -186,7 +186,7 @@ These two internal schemas do not extend the public API. Generate their provider
 
 ## 5. Common policy block
 
-**Proposed literal text: `common-policy-v0.1.0-draft`.** Append exactly one phase block to it. This text restates the policy as model instructions; the linked safety document remains the authority for policy decisions.
+**Baseline literal text: `common-policy-v0.1.0-draft`.** Append exactly one phase block to it. This text restates the policy as model instructions; the linked safety document remains the authority for policy decisions.
 
 ```text
 You are part of Gusto NutriBite, an AI assistant for general food, nutrition,
@@ -274,7 +274,7 @@ Do not ship only this block. Each call also needs its phase block, strict schema
 
 ## 6. Input classifier prompt
 
-**Proposed literal text: `input-safety-v0.1.0-draft`.** Use after the common policy block, with `InputVerdict` as native structured output and `PromptContext` as data.
+**Baseline literal text: `input-safety-v0.1.0-draft`.** Use after the common policy block, with `InputVerdict` as native structured output and `PromptContext` as data.
 
 ```text
 YOUR PHASE: INPUT SAFETY
@@ -318,13 +318,13 @@ Output only a valid action/reason pair. Do not output a safety score, narrative,
 chain of thought, proposed response, or any additional field.
 ```
 
-The tie-break order is a proposed routing convention, not a new policy hierarchy. Code uses the same precedence when multiple deterministic rules match. A more urgent recognised risk must not be lost by returning the first lexical match. Record the selected reason; any additional rule IDs are allowlisted code metadata, not extra model fields.
+The tie-break order is the adopted routing convention, not a new policy hierarchy. Code uses the same precedence when multiple deterministic rules match. A more urgent recognised risk must not be lost by returning the first lexical match. Record the selected reason; any additional rule IDs are allowlisted code metadata, not extra model fields.
 
 ## 7. Answer generator prompt
 
 ### PS-07: Length, tone, and factual claims
 
-Proposed length targets apply to the visible `answer`, not to JSON or the duplicated claim text:
+Baseline length targets apply to the visible `answer`, not to JSON or the duplicated claim text:
 
 | Response | Target | Application |
 | --- | --- | --- |
@@ -341,7 +341,7 @@ No fixed minimum number of claims is required. Capability statements, scope ques
 
 ### Literal generation block
 
-**Proposed literal text: `answer-v0.1.0-draft`.** Use after the common policy block, with the Milestone 1 `AnswerContent` schema and `PromptContext` as data.
+**Baseline literal text: `answer-v0.1.0-draft`.** Use after the common policy block, with the Milestone 1 `AnswerContent` schema and `PromptContext` as data.
 
 ```text
 YOUR PHASE: ANSWER GENERATION
@@ -430,7 +430,7 @@ The follow-up question is not itself a factual claim. Do not paste example answe
 
 ## 8. Output reviewer prompt
 
-**Proposed literal text: `output-safety-v0.1.0-draft`.** Use after the common policy block, with `OutputVerdict` as native structured output and `ReviewInput` as data. This is a separate invocation from generation, even if the configured provider/model is the same.
+**Baseline literal text: `output-safety-v0.1.0-draft`.** Use after the common policy block, with `OutputVerdict` as native structured output and `ReviewInput` as data. This is a separate invocation from generation, even if the configured provider/model is the same.
 
 ```text
 YOUR PHASE: OUTPUT SAFETY REVIEW
@@ -481,7 +481,7 @@ The server runs strict content/source validation and deterministic checks before
 
 ### PS-08: Constant content and selection
 
-**Proposed catalogue: `templates-v0.1.0-draft`.** Each row supplies the exact `answer` string. The server wraps it as `{ "answer": templateText, "claims": [] }` and adds the listed message kind outside content. These messages contain boundaries, invitations, and referrals rather than nutrition facts. Check every template against the same public schema and milestone rules at build time and when used.
+**Baseline catalogue: `templates-v0.1.0-draft`.** Each row supplies the exact `answer` string. The server wraps it as `{ "answer": templateText, "claims": [] }` and adds the listed message kind outside content. These messages contain boundaries, invitations, and referrals rather than nutrition facts. Check every template against the same public schema and milestone rules at build time and when used.
 
 No template accepts a user quote, number, name, diagnosis, location, generated alternative, or free-form reason as interpolation. Exact professional titles remain general; do not imply an existing clinician relationship, free consultation, or available service.
 
@@ -532,7 +532,7 @@ Before integration, verify all three schemas with the selected endpoint, complet
 
 Use a low-variation setting only if supported and validated. Do not assert that zero temperature makes answers deterministic or true. Record unsupported/provider-controlled settings as unknown or `null`, not invented defaults.
 
-Carry forward the architecture's initial proposals: 2,000 output tokens for generation; 256 for each safety verdict; phase timeouts of 10/25/10 seconds; a shared 45-second model-call budget; and a 60-second attempt deadline. They require verification for the chosen model, especially if reasoning shares the output allowance. Keep executable values in typed configuration, not scattered prompt strings. Disable automatic SDK retries under the baseline.
+Use the architecture's initial defaults: 2,000 output tokens for generation; 256 for each safety verdict; phase timeouts of 10/25/10 seconds; a shared 45-second model-call budget; and a 60-second attempt deadline. They require verification for the chosen model, especially if reasoning shares the output allowance. Keep executable values in typed configuration, not scattered prompt strings. Disable automatic SDK retries under the baseline.
 
 Keep the stable policy, phase instructions, and schemas before changing context where supported. Provider prefix caching is optional and must be measured. Do not add padding, reduce safety context, share private responses across users, or reuse full answers to claim savings. HTTP replay is recovery of one attempt, not a fresh model sample.
 
@@ -540,7 +540,7 @@ Record usage for `input_safety`, `answer`, and `output_safety`, including failed
 
 ## 11. Examples and regression coverage
 
-These are illustrative checks for the prompt handoff. They do not replace the future ten-question evaluation set, assert that the model will respond correctly, or supply hidden answer keys to production prompts.
+These illustrative checks do not replace the existing [ten-question set](evaluation.md#3-the-ten-fixed-questions), predict model success, or supply answer keys to production prompts.
 
 | ID | Scenario | Expected behaviour |
 | --- | --- | --- |
@@ -571,7 +571,7 @@ Safety-verdict fixtures must include every valid action/reason pair and incompat
 
 ### PS-11: Evaluation after changes
 
-`evaluation.md` will own the exact ten fixed questions, run conditions, scoring, and counts; `edge-cases.md` will own expanded scenario inputs; `testing.md` will own executable software checks. These documents are planned, not linked as existing files. Create `failure-log.md` when evaluations begin, and store actual observations there with run references.
+[Evaluation](evaluation.md) owns fixed questions/scoring/counts; [edge cases](edge-cases.md) owns scenario inputs; [testing](testing.md) owns software execution. These documents exist; their executable checks and live results do not. Create `failure-log.md` when evaluations begin.
 
 Before considering a prompt version evaluated:
 
@@ -667,12 +667,12 @@ These checks are implementation/evaluation requirements, not passing results fro
 
 | Choice | Current position | Where to resolve |
 | --- | --- | --- |
-| English-only baseline and `POL-06`–`POL-12` | Included in this draft bundle; still proposals. | Safety policy and product scope, before implementing those behaviours. |
-| Exact template wording, reason tie-breaks, and length targets | Proposed here, including fixed generic scope clarification. | This document; check with policy and regression results. |
+| English baseline and `POL-06`–`POL-12` | Adopted; test permitted controls as well as refusals. | Safety policy and product scope. |
+| Templates, tie-breaks, and length targets | Adopted implementation baseline; no evaluation results yet. | This document; version changes and retain regression evidence. |
 | Provider/model/endpoint and supported settings | Unverified; no provider selected by this document. | Architecture and adapter integration. |
-| Effective output/context/time limits and cost budget | Existing architecture proposals carried forward. | Product, architecture, and operations. |
-| Fixed evaluation questions and scoring | Not written or run here. | Planned `evaluation.md`, `edge-cases.md`, and `testing.md`. |
-| Visual design | Guide and HTML preview remain planned. | `design-guide.md` and `design-guide-preview.html`. |
-| Privacy/deletion contract gap | Existing proposed deletion endpoint/UX amendment remains unresolved. | API, UX, data model, and safety documents; do not invent prompt-controlled deletion. |
+| Effective output/context/time limits and cost budget | Adopted architecture defaults carried forward. | Product, architecture, and operations. |
+| Fixed evaluation and software checks | Existing specifications; runners/results remain unimplemented. | [Evaluation](evaluation.md), [edge cases](edge-cases.md), and [testing](testing.md). |
+| Visual design | Use existing Wise files; resolve chat-specific details during implementation. | [Reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html). |
+| Privacy | Automatic expiry/revocation cleanup is in M1; manual deletion is deferred as FB-001. | API, data, and safety; chat text never authorizes deletion. |
 
-Recommended next prompt-related document: `docs/edge-cases.md`, followed by `docs/evaluation.md`. The Design Guide and its HTML preview remain outstanding in the README sequence. Continue one authored document at a time; this prompt draft does not claim those documents or the app are complete.
+Follow the [implementation plan](phase-wise-implementation-plan.md) and existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance. Edge cases, evaluation, testing, and design references exist; implement applicable checks in their phase. No app or evaluated prompt is claimed.

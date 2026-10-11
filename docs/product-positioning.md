@@ -19,7 +19,7 @@ This document gives that product an audience, brand, value proposition, and comm
 | Product name | **Gusto NutriBite**, selected by the product owner. |
 | Tagline | **Your personal AI nutrition companion**, selected by the product owner. |
 | Audience | India-first everyday adults, with room to expand globally. |
-| Initial language | English is the current proposal. Indian food names within English questions do not imply multilingual support. |
+| Initial language | English adopted for M1. Indian food names within English do not imply multilingual support. |
 | Product scope | The problem statement is the source of truth. The brand reference does not introduce meal planning, tracking, profiles, food-image recognition, or personalised diet advice. |
 | Brand direction | Enjoyment of food, accessible understanding, friendly guidance, and a non-judgemental experience. |
 | Research and commercial ideas | Planning hypotheses and opportunities for ongoing learning, not prerequisites. No customer research or market results are claimed. |
@@ -179,7 +179,7 @@ The commercial learning question is whether this focused experience is more usef
 
 ## 6. Audience and India-first principles
 
-The confirmed market direction is broad. The recommended first segment is narrower: **English-comfortable adults in India who regularly make household food choices and want explanations rather than prescribed targets.** This provides a coherent starting point for discovery and pilot recruitment.
+The confirmed market direction is broad. The adopted first segment is **English-comfortable adults in India making household food choices and seeking explanations rather than prescriptions**. Persona research remains optional and does not gate implementation.
 
 Secondary segments include people learning to read packaged-food labels and adults beginning to shop or cook independently. Evaluators and maintainers are internal roles, not customer personas.
 
@@ -281,7 +281,7 @@ Ongoing competitor research can compare actual alternatives against a fixed set 
 
 ## 10. Experience promise and customer journey
 
-The initial experience should help someone move from a question to understanding. It should not frame food as a score to maximise or force account creation before the first useful interaction under the current proposed scope.
+The initial experience should help someone move from a question to understanding. It should not frame food as a score to maximise or force account creation before the first useful interaction under the adopted M1 scope.
 
 | Moment | User needs | Experience and message principle | What to learn |
 | --- | --- | --- | --- |
@@ -392,7 +392,7 @@ Do not call a source “research” merely because a model names an institution.
 
 ## 14. Draft copy kit
 
-These examples apply the chosen name and tagline to the product in the problem statement. They are draft copy, not an implementation record. The UX document owns interaction states; `prompt-spec.md` will own exact assistant templates.
+These examples apply the chosen name and tagline to the product in the problem statement. They are draft copy, not an implementation record. The UX document owns interaction states; [prompt-spec.md](prompt-spec.md) owns exact assistant templates.
 
 ### Product and landing-page copy
 
@@ -425,7 +425,7 @@ Suggested starter questions: “What does dietary fibre mean?”, “Why can the
 | Excluded request | “I can't recommend a calorie target. A qualified dietitian can help with individual needs.” | State the boundary and an appropriate referral without supplying the prohibited advice. |
 | Mixed request | State the boundary and referral, then offer a separate general question. | Follow the policy's response rule. |
 
-Data-control copy should describe the actual control and its scope. The proposed session-wide deletion design remains documented in [safety and security](safety-and-security.md).
+Data-control copy describes actual session expiry, automatic cleanup, and provider/backup limits. Manual deletion is deferred as [FB-001](feature-backlog.md#backlog); do not promise that control.
 
 ### FAQ copy
 
@@ -461,7 +461,7 @@ Assess source relevance and quality, preserve important qualifications, and reco
 
 Keep an owner and review date for maintained content. Factual corrections, source changes, and changes to product behaviour are useful prompts for revision. This is an ongoing editorial practice, not a product launch checklist.
 
-## 16. Implications for the Design Guide
+## 16. Design implementation
 
 Design can proceed from the selected Gusto NutriBite identity. The brand should feel friendly, intelligent, approachable, and positive, while making evidence and limitations easy to understand.
 
@@ -474,9 +474,9 @@ Design can proceed from the selected Gusto NutriBite identity. The brand should 
 | India-first relevance | Varied familiar foods and realistic cooking/shopping contexts. | Do examples avoid a single regional, premium, or stereotyped diet? |
 | Accessibility | Keyboard access, visible focus, readable contrast, responsive text, and understandable status updates. | Can users read and operate the experience across mobile and desktop? |
 
-The earlier design-system recommendation remains a **small custom system using Radix UI primitives, CSS Modules, and shared design tokens**. Radix provides interaction primitives, not the product's visual identity or automatic accessibility. The user has selected [Wise as visual inspiration](design-references/wise/DESIGN.md); its [visual preview](design-references/wise/preview.html) explores the palette, bold typography, shapes, and illustrative Gusto NutriBite adaptations. The Design Guide will decide how these cues fit this product's warmth, food enjoyment, and reading needs. Source Sans 3 was an initial font idea; the preview uses Inter as an offline substitute for the reference's proprietary Wise Sans, not as a final product font decision.
+Use the existing [Wise design reference](design-references/wise/DESIGN.md) and [visual preview](design-references/wise/preview.html) directly as the UI starting point, as confirmed by the owner. Adapt the palette, type, spacing, and components to readable nutrition chat. CSS Modules and small shared tokens are selected; Radix remains optional only if a real interaction needs it. Preserve the source reference and its font licensing; do not treat proprietary Wise Sans or extra reference demo surfaces as M1 requirements.
 
-The Design Guide will define typography, colour, spacing, components, icons, imagery, responsive layouts, focus, motion, and the existing conversation/source/error states. WCAG 2.2 AA remains the accessibility target, not an untested compliance claim.
+Record remaining product typography, colors, layout, focus, motion, and responsive decisions in UX/testing and implemented tokens as the UI is built. No separate Design Guide/preview creation is required for M1. WCAG 2.2 AA remains the accessibility target, not an untested compliance claim.
 
 ## 17. Go-to-market direction
 
@@ -579,7 +579,7 @@ The product owner maintains positioning. Engineering records implemented behavio
 
 ## 22. Document handoff and decision record
 
-This document guides ongoing work without adding a launch checklist. The selected identity can be used directly in the Design Guide. Research and commercial exploration can continue independently.
+This document guides ongoing work without adding a launch checklist. Use the selected identity and existing design references during UI implementation. Research and commercial exploration can continue independently.
 
 | Document | Owns |
 | --- | --- |
@@ -587,12 +587,12 @@ This document guides ongoing work without adding a launch checklist. The selecte
 | This document | Audience, selected identity, brand meaning, positioning, editorial principles, and commercial/research ideas. |
 | [Product specification](product-spec.md) | Required behaviour, scope, stable requirement IDs, and acceptance checks. |
 | [UX flows](ux-flow.md) | User actions, interaction states, and recovery behaviour. |
-| `design-guide.md` — next | Visual system, components, responsive behaviour, and accessible presentation. |
+| [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html) | Existing visual starting point; implementation adapts it to chat and verifies accessibility. |
 | [Architecture](architecture.md), [API contract](api-contract.md), and [data model](data-model.md) | Technical design, public contracts, and persistence. |
 | [Safety and security](safety-and-security.md) | Detailed safety rules, privacy, access, retention, and security controls. |
-| `prompt-spec.md` — planned | Exact model instructions, assistant templates, and prompt change reasons. |
-| `evaluation.md` and `testing.md` — planned | Scoring, representative questions, software checks, and recorded results. |
-| `phase-wise-implementation-plan.md` and `deployment-and-operations.md` — planned | Delivery sequencing and operating procedures. |
+| [Prompt specification](prompt-spec.md) | Exact model instructions, templates, and prompt change reasons; not implemented or evaluated. |
+| [Evaluation](evaluation.md) and [testing](testing.md) | Existing live-review and software-check specifications; no execution claimed. |
+| [Implementation plan](phase-wise-implementation-plan.md) and [deployment/operations](deployment-and-operations.md) | Approved delivery sequence and initial operating guidance; runtime evidence is added during implementation. |
 
 ### Decisions recorded on 11 October 2026
 
@@ -605,6 +605,6 @@ This document guides ongoing work without adding a launch checklist. The selecte
 | Brand reference | Used for meaning, philosophy, and tone; it does not redefine product scope or positioning. |
 | Product source of truth | The original problem statement and its requirements. |
 | Launch dependencies from positioning | None. |
-| Design system | The custom Radix/CSS Modules/token recommendation remains a design proposal. |
+| Design system | Existing Wise reference/preview selected for implementation; CSS Modules/shared tokens, with additional primitives only when needed. |
 
-Next document: `docs/design-guide.md`, using Gusto NutriBite and the selected tagline. Continue from the actual product scope and existing UX states.
+Next step: follow the [implementation plan](phase-wise-implementation-plan.md) and existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance; implement in phases using the existing design files. Branding and research do not add delivery gates.

@@ -1,12 +1,12 @@
 # Gusto NutriBite: Software Testing
 
-Status: Implementation baseline for the proposed stack. Test configuration, scripts, fixtures, and CI do not exist yet; no application checks have passed.
+Status: Implementation baseline for the selected stack. Test configuration, scripts, fixtures, and CI do not exist yet; no application checks have passed.
 
 Last updated: 11 October 2026.
 
 ## 1. What this document decides
 
-This document owns **how software behaviour is tested**: test layers, isolation, controlled dependencies, race/failure injection, commands, CI selection, and evidence. [Code conventions](code-conventions.md) owns implementation style and module discipline. The [architecture](architecture.md#2-proposed-stack-and-scope) owns the stack.
+This document owns **how software behaviour is tested**: test layers, isolation, controlled dependencies, race/failure injection, commands, CI selection, and evidence. [Code conventions](code-conventions.md) owns implementation style and module discipline. The [architecture](architecture.md#2-selected-stack-and-scope) owns the stack.
 
 Use [edge-cases.md](edge-cases.md) for scenario wording and expected outcomes, the [API contract](api-contract.md) for wire assertions, and the [data model](data-model.md#enforcement-matrix) for database invariants. Do not copy those catalogues into tests documentation or maintain another expected-error table here. Tests reference their source case IDs; executable fixtures materialise the inputs needed to run them.
 
@@ -98,14 +98,14 @@ This table routes work; the [catalogue coverage map](edge-cases.md#coverage-map)
 | `EC-CTX-*` | Unit context construction and database/service integration | Live later-turn references remain in evaluation; browser verifies active-chat wiring. |
 | `EC-REQ-*`, `EC-DATA-01`–`EC-DATA-05` | Real database/service and HTTP integration | A focused browser recovery flow checks the UI consumes the stored outcome. |
 | `EC-SEC-*` | HTTP/database integration and built-browser checks | Security-header and deployed-origin behaviour also needs the actual HTTPS environment. |
-| `EC-DATA-06`–`EC-DATA-11` | Isolated maintenance/migration/restore integration | Deletion-action cases stay contract-dependent until the existing API/UX gap is resolved. |
+| `EC-DATA-06`–`EC-DATA-11` | Isolated maintenance/migration/restore integration | Run M1 expiry/revocation/cleanup/restore cases. `EC-DATA-08` and `EC-DATA-09` are deferred with FB-001, not missing M1 coverage. |
 | `EC-UI-*` | Browser | Manual keyboard/screen-reader and design review supplement automated checks. |
 | `EC-OPS-*` | Service/adapter integration, process restart, and release verification | Measurement and model-comparison results remain in evaluation, not unit-test reports. |
 | `EC-RAG-*` | Milestone 2 adapter/evidence integration when implemented | Milestone 1 still tests citation-union compatibility and its own source-policy boundary. |
 
 For migrations, test empty initialization and, once a released schema exists, a populated upgrade from that version. Read the [data model's migration rules](data-model.md#proposed-migration-sequence) as the assertion source. The first version cannot claim to have tested a nonexistent previous release. Use the runtime role to test ordinary permissions, and a separate migration role for schema work.
 
-For browser coverage, start with Chromium desktop in each applicable PR. Before a UI release, add Firefox, WebKit, and mobile-sized projects, using the same pinned Playwright browser revisions. Viewport emulation is not evidence from a physical phone. Exact supported widths and visual baselines come from the Design Guide; until those are decided, report behaviour checks and the missing visual acceptance separately.
+For browser coverage, start with Chromium desktop in applicable PRs. Before UI release, add Firefox, WebKit, and mobile-sized projects using pinned Playwright revisions. Emulation is not evidence from a physical phone. Use the existing [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html); record chat-specific widths and visual acceptance during implementation. No duplicate guide is a prerequisite.
 
 Use accessible roles/labels for locators; add a test ID only when no stable semantic locator fits. Assert visible outcomes and public/durable state, not component internals or CSS class names. A focused automated accessibility scan may use `@axe-core/playwright`; it does not replace manual focus order, keyboard, composition-input, zoom, and screen-reader checks. Import/source/output policy scans remain separate from accessibility checks.
 
@@ -133,7 +133,7 @@ These are **target npm script names**, not commands available today. Define them
 | Pure helper with no shared contract effect | `check` and its affected integration boundary, if any | Run broader suites when imports or behaviour propagate. |
 | Public schema, parsing, provider adapter, prompt assembly, policy/template, context, turn/session/config code | `check`, relevant integration suite, build, and browser smoke for changed visible flows | Prompt/model changes also trigger [evaluation regression](evaluation.md#2-what-an-evaluation-run-contains). |
 | Database/migration/maintenance | `check`, database integration including applicable upgrade/restore cases, build and affected HTTP/browser flows | Retention/security acceptance remains with its policy owner. |
-| UI, routing, or styling | `check`, build, Chromium flows and accessibility checks; affected HTTP tests if the API use changes | Release browser matrix and Design Guide review. |
+| UI, routing, or styling | `check`, build, Chromium flows and accessibility checks; affected HTTP tests if the API use changes | Release browser matrix and comparison with the existing design references. |
 | Dependency, runtime, framework, or CI changes | All applicable software jobs | Adapter compatibility and/or live evaluation when behaviour may change. |
 
 Run CI on Linux with the pinned runtime and PostgreSQL version. Before marking local setup ready, run the npm entry points from Windows as well; Linux CI cannot establish Windows launcher compatibility. Branch-required checks should reference stable job names and fail when expected tests are missing. Before code exists, label unimplemented checks as pending, never as green empty test runs.
@@ -150,4 +150,4 @@ Collect coverage when useful for finding untested branches, not as a target perc
 
 The test harness is ready when its commands execute real assertions, clean up only owned resources, detect a deliberately failing fixture, and produce case-linked evidence. A feature's software checks are complete when all applicable mapped variants ran with their stated real dependencies and no required failure/gap is hidden. The broader release decision is made under [the existing release review](safety-and-security.md#release-review) with [evaluation evidence](evaluation.md#13-completion-review-decisions-and-release-boundaries).
 
-No additional testing checklist document is needed. Keep harness implementation links here as code appears; record new scenarios in the catalogue and open build decisions in the [README](../README.md#next-build-decisions).
+Keep harness links here as code appears and new scenarios in the catalogue. The [implementation plan](phase-wise-implementation-plan.md) tracks delivery; the short [assignment comparison](problem-statement-alignment.md) checks scope without duplicating this testing specification.

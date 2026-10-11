@@ -1,6 +1,6 @@
 # Gusto NutriBite: Safety and Security
 
-Status: Draft for review. This document defines required boundaries and proposed controls. None are claimed to be implemented, tested, or deployed.
+Status: Adopted M1 policy and control baseline, 11 October 2026. Nothing is claimed to be implemented, tested, or deployed.
 
 Last updated: 11 October 2026.
 
@@ -8,15 +8,15 @@ Last updated: 11 October 2026.
 
 This document owns the app's safety policy, privacy rules, access controls, abuse prevention, and security release gates. It builds on the [original brief](problemStatement.txt), [product specification](product-spec.md), [architecture](architecture.md), [API contract](api-contract.md), and [data model](data-model.md).
 
-The brief's calorie-target, weight-target, and medical-advice exclusions are required. Professional referral and enforcement in code are also required. This document cannot relax them. Other choices below, including language, sensitive-request handling, retention periods, deletion scope, and security defaults, are **proposed** until reviewed. A draft policy is not evidence that the app enforces it.
+The brief's calorie-target, weight-target, and medical-advice exclusions, professional referral, and code enforcement are required and cannot be relaxed. English scope, `POL-06`–`POL-12`, and the security/retention defaults were adopted with the [implementation plan](phase-wise-implementation-plan.md). Platform enforcement still needs verification. Manual session-wide deletion is deferred as [FB-001](feature-backlog.md#backlog). Policy approval is not implementation evidence.
 
 Policy IDs beginning `POL-` identify rules in this document; they do not replace or renumber the product's `SAFE-`, `ANS-`, `CHAT-`, or `SYS-` requirements. Keep these IDs stable when adding test cases or recording failures.
 
-The API owns public schemas and errors. The data model owns tables and transactions. `prompt-spec.md` will own system instructions and exact template wording. `edge-cases.md`, `evaluation.md`, and `testing.md` will own test inputs, scoring, and execution procedures. Link those artifacts to these rules rather than copying the policy into several documents.
+The API owns public schemas and errors; the data model owns tables and transactions. [Prompt specification](prompt-spec.md) owns exact instructions/templates; [edge cases](edge-cases.md), [evaluation](evaluation.md), and [testing](testing.md) own scenarios, scoring, and execution. Link to them rather than copying policy into several documents.
 
 ## 2. Intended use and response decisions
 
-The confirmed audience direction is India-first everyday adults, with room to expand globally; see [product positioning](product-positioning.md). Propose an English-language first release for general food and nutrition education. Do not collect a date of birth, identity document, medical record, body measurements, or nutrition profile to use it. This is an intended-use boundary, not verified age gating. A self-identified minor can receive ordinary food education; personalized nutrition or body-change advice receives the safeguards below.
+The confirmed audience is India-first everyday adults, with room to expand globally; see [product positioning](product-positioning.md). M1 uses English for general food/nutrition education. Do not collect a date of birth, identity document, medical record, body measurements, or nutrition profile. This is intended use, not verified age gating. Self-identified minors can receive ordinary education; personal nutrition/body-change advice receives the safeguards below.
 
 Milestone 1 has no retrieved evidence. Its responses can be wrong even when their JSON and safety checks pass. Keep the [source limitation notice and empty sources panel](ux-flow.md#ux-05-look-for-sources) visible. Never imply that a citation, factual claim, provider model, or response has been independently verified when it has not.
 
@@ -45,9 +45,9 @@ POL-01 and POL-02 apply to generic or hypothetical target requests as well as pe
 
 For POL-05, a general adult nutrient question may receive an educational explanation or appropriate population-level information. Do not turn supplied body weight, symptoms, pregnancy status, disease, medication, or lab values into a personalized prescription. If the user requests that personalization, follow POL-03; if intent is genuinely unclear, clarify without asking for those details.
 
-### Additional policy proposals
+### Adopted additional policies
 
-| ID | Rule | Required behavior if adopted |
+| ID | Rule | Required M1 behavior |
 | --- | --- | --- |
 | POL-06 | Mixed requests and indirect references | Refuse the entire mixed turn when any requested part requires prohibited advice. Offer to answer a separate general question. Do not let a safe paragraph carry an unsafe target or recommendation. |
 | POL-07 | Ambiguous intent | Ask one short scope question, such as whether the user wants general educational information. Do not request weight, diagnosis, medication, or other personal details to make prohibited advice possible. |
@@ -57,7 +57,7 @@ For POL-05, a general adult nutrient question may receive an educational explana
 | POL-11 | Unsupported language or unrelated requests | Redirect to an English food/nutrition question. Do not start an extra translation/research workflow. Recognizable urgent or prohibited intent still takes precedence over an ordinary redirect. |
 | POL-12 | Harmful food instructions or unsupported safety assurance | Do not provide instructions likely to cause poisoning or other serious harm, identify an unknown item as safe to consume, or assure safety without an adequate basis. Preserve useful general education and record unnecessary refusals. |
 
-These examples define behavior; they are not approved prompt text or a complete test set. Exact wording belongs in `prompt-spec.md`. Do not invent local emergency telephone numbers or collect location to produce one. A concise direction to the user's local service is sufficient for this prototype.
+These examples define behavior, not literal prompt text or a complete test set. Exact wording belongs in [prompt-spec.md](prompt-spec.md). Do not invent local emergency telephone numbers or collect location to produce one. A concise direction to the user's local service is sufficient.
 
 ### Context and precedence
 
@@ -117,7 +117,7 @@ Template changes require policy/schema checks and regression review. Do not appe
 
 ### Structured contextual classifier
 
-Use a small internal schema: `action` is `allow`, `refuse`, or `clarify`; `reason` is one value from a closed set. Proposed reason values are `general_education`, `calorie_target`, `weight_target`, `medical_advice`, `mixed_request`, `ambiguous_intent`, `urgent_help`, `harmful_body_change`, `sensitive_personalization`, `unsupported_language`, `unrelated_topic`, and `unsafe_food_request`.
+Use a small internal schema: `action` is `allow`, `refuse`, or `clarify`; `reason` is one value from a closed set. The reason values are `general_education`, `calorie_target`, `weight_target`, `medical_advice`, `mixed_request`, `ambiguous_intent`, `urgent_help`, `harmful_body_change`, `sensitive_personalization`, `unsupported_language`, `unrelated_topic`, and `unsafe_food_request`.
 
 Validate the action/reason pairing in code. Only `general_education` permits `allow`. Ambiguous, unsupported-language, and unrelated-topic reasons permit `clarify`. The remaining reasons require `refuse`. Deterministic refusal rules cannot be overridden by an allow verdict.
 
@@ -127,7 +127,7 @@ This classifier can miss intent or over-refuse. Its output is not proof of safet
 
 ### Output acceptance
 
-Inspect both answer text and claims. Apply the [strict public content schema](api-contract.md#answer-content-and-citation-schema), null-source requirement for Milestone 1, code policy checks, and a separate structured safety review. Proposed review decisions are `allow` or `reject`, with closed reasons such as `within_scope`, `policy_violation`, `unsafe_food_guidance`, `unsupported_safety_assurance`, and `sensitive_data_exposure`. Only `allow` with `within_scope` may proceed.
+Inspect both answer text and claims. Apply the [strict public content schema](api-contract.md#answer-content-and-citation-schema), null-source requirement for Milestone 1, code policy checks, and a separate structured safety review. Review decisions are `allow` or `reject`, with closed reasons such as `within_scope`, `policy_violation`, `unsafe_food_guidance`, `unsupported_safety_assurance`, and `sensitive_data_exposure`. Only `allow` with `within_scope` may proceed.
 
 The output reviewer receives the question, relevant full history, and candidate as untrusted data. It is independent of the answer-generation invocation, though it may use the same configured provider. Do not claim that agreement between two calls proves correctness.
 
@@ -138,7 +138,7 @@ The output reviewer receives the question, relevant full history, and candidate 
 
 Never stream unvalidated tokens to the browser, put rejected content into normal messages/history, or repair an invalid response into apparent success. Keep the failed attempt and safe reason. A later explicit retry creates a new attempt under the same policy; it does not erase the first failure.
 
-The proposed path uses at most three provider calls per ordinary attempt: input classification, answer generation, and output review. Clear deterministic refusals use none. The existing time/output/attempt bounds apply across all phases. A review step may not be skipped because the remaining time or budget is small; fail closed instead.
+The adopted path uses at most three provider calls per ordinary attempt: input classification, answer generation, and output review. Clear deterministic refusals use none. The existing time/output/attempt bounds apply across all phases. A review step may not be skipped because the remaining time or budget is small; fail closed instead.
 
 ## 5. Threat boundaries and application controls
 
@@ -151,7 +151,7 @@ The proposed path uses at most three provider calls per ordinary attempt: input 
 | Secrets or transcripts escape through logs/build artifacts | Server-only secrets, allowlisted telemetry, restricted artifacts, and pre-release scans. | Built client bundle and representative logs checked without printing secrets. |
 | Replays or simultaneous retries multiply calls | Durable receipts, atomic attempt acceptance, database uniqueness, and completion fences. | Concurrent request/retry and uncertain-commit checks. |
 | Automated clients exhaust provider/database capacity | Shared quotas, payload/context/call limits, bounded slots, cost controls, and generation kill switch. | Rate, capacity, timeout, and shutdown checks. |
-| Deleted data reappears after a late response or restore | Revocation/deletion predicates, fenced completion, scoped purge, and restore reconciliation. | Delete/restart/restore race checks. |
+| Expired/revoked data reappears after a late response or restore | Live-session predicates, fenced completion, scoped purge, and conservative restore. | Expiry/revocation, restart, and restore race checks. |
 | Future retrieved text injects instructions or fake citations | Trusted retrieval boundary, passage isolation, exact evidence mapping, and bounded source access. | Milestone 2 adversarial passage and invented-source checks. |
 
 ### Input, storage, and rendering
@@ -172,7 +172,7 @@ Do not expose a database or evaluator dashboard to the browser. Give the runtime
 
 ## 6. Sessions, ownership, and CSRF
 
-The cookie and HTTP behavior remain owned by the [API session contract](api-contract.md#session-and-csrf-rules); the [session table](data-model.md#sessions) owns stored fields. The following specifies the proposed security construction.
+The cookie and HTTP behavior remain owned by the [API session contract](api-contract.md#session-and-csrf-rules); the [session table](data-model.md#sessions) owns stored fields. The following specifies the adopted security construction.
 
 ### Session identity
 
@@ -180,11 +180,11 @@ Generate at least 32 cryptographically random bytes for each anonymous session t
 
 Enforce database expiry and revocation on every protected operation, including status and finalization. Resource IDs and client operation IDs are not substitutes for the cookie. Missing, expired, invalid, and revoked sessions receive the existing uniform unavailable behavior. Never restore a session from a conversation ID or silently attach an old conversation to a replacement session.
 
-The proposed absolute access lifetime remains seven days. Shared browsers share the same cookie identity; this is not protection from another person using that browser profile. State that limitation in data-handling help. No registration or cross-device recovery is added.
+The absolute access lifetime remains seven days. Shared browsers share the same cookie identity; this is not protection from another person using that browser profile. State that limitation in data-handling help. No registration or cross-device recovery is added.
 
 ### CSRF construction and rotation
 
-Use an independent random server key of at least 32 bytes for HMAC-SHA-256. Store only its key-version identifier and the 32-byte random session nonce in the session row. The proposed canonical message is:
+Use an independent random server key of at least 32 bytes for HMAC-SHA-256. Store only its key-version identifier and the 32-byte random session nonce in the session row. The canonical message is:
 
 ```text
 ai-nutrition-asst:csrf:v1\n<lowercase-session-uuid>\n<base64url-session-nonce>
@@ -204,7 +204,7 @@ All existing POSTs except session bootstrap require `X-CSRF-Token`. Bootstrap re
 
 A valid live session may retrieve its CSRF metadata through the same-origin session read. Mark it non-cacheable; never embed it in a public/shared cache. Public health endpoints remain unauthenticated and reveal only their defined safe status.
 
-## 7. Privacy, retention, and deletion proposals
+## 7. Privacy, retention, and cleanup
 
 ### Data minimization and user notice
 
@@ -215,21 +215,20 @@ Before the first submission, show concise information covering:
 - The assistant provides general food/nutrition information, can be wrong, and does not provide the excluded targets or medical advice.
 - This version does not retrieve or verify sources.
 - The conversation is stored and necessary context is sent to the selected model service for safety checks and answering.
-- The session/history lifetime, deletion behavior, backup/provider limits, and support/privacy contact.
+- The session/history lifetime, automatic cleanup, absence of manual deletion in M1, backup/provider limits, and support/privacy contact.
 - Users should avoid sharing identifying information or private medical records.
 
-This is a proposed notice requirement, not final copy or a blanket claim of consent/compliance. Fill in the actual operator, model service, hosting locations, and data-handling details before public use. A generic warning cannot compensate for incorrect handling.
+This notice is required, but final copy and actual operator/provider/hosting details must be verified before public use. It is not a blanket consent/compliance claim. A generic warning cannot compensate for incorrect handling.
 
 ### Retention schedule
 
-The following durations are proposed product/operations limits, not claims about a hosting or model provider's current capabilities. Confirm that deployed services can enforce them before publishing the notice.
+The following durations are adopted initial product/operations limits, not claims about a hosting or model provider's current capabilities. Confirm enforcement before publishing the notice; record and approve any necessary policy change rather than silently extending retention.
 
-| Data | Proposed retention and handling |
+| Data | Initial retention and handling |
 | --- | --- |
-| Live session and conversation payload | Accessible only while the session is live and the conversation is undeleted; no sliding extension. At expiry or earlier revocation/deletion, deny access immediately and purge app-held payload within 24 hours. |
+| Live session and conversation payload | Accessible only while the session is live; no sliding extension. At seven-day absolute expiry or earlier security revocation, deny access immediately and purge app-held payload within 24 hours. |
 | Attempts, normalized questions, digests, manifests, provider-call metadata | Purge with their conversation payload. Do not keep a second private transcript or identifiable usage ledger under an analytics label. |
 | Empty bootstrap sessions | Remove within 24 hours after expiry/revocation; no extra device tracking to identify them. |
-| Conversation tombstones | Keep only identity/creation-key metadata while needed to prevent replay under a live session; remove within the session's 24-hour post-cutoff cleanup window. |
 | Quota subject digests | Delete within one hour after the enforcement window ends. Do not retain raw IP addresses in the application quota store. |
 | Normal operational logs | Seven days, with the allowlist below and no message text or session credentials. |
 | Operator security audit records | Thirty days; actor, time, action, reason, and outcome only, excluding visitor transcripts and credentials. |
@@ -237,25 +236,21 @@ The following durations are proposed product/operations limits, not claims about
 | Reviewed synthetic evaluation records | Preserve through both milestones and for the maintained project's comparison history. They must contain no real visitor data or secrets. |
 | Model/hosting provider-held data | Verify the exact account/product settings and provider policy. Do not promise the app's purge deadline applies to independent provider retention. |
 
-For this table, **access cutoff** is the earliest applicable expiry, revocation, or confirmed logical deletion. The cleanup clock does not restart on a failed job, a read, or a new chat. Monitor missed deadlines and treat them as incidents; do not silently extend retention.
+For this table, **access cutoff** is the earlier of expiry or security revocation. The cleanup clock does not restart on a failed job, read, or new chat. Monitor missed deadlines as incidents. M1 does not delete individual conversations under a live session, so no live-session creation-key tombstones or user-deletion receipts are needed.
 
 No arbitrary permanent incident archive is enabled for visitor messages. Preserve safe event metadata and a synthetic reproduction where possible. Any exceptional retention of real content needs a separately documented purpose, restricted access, deletion date, and appropriate authorization; it is not a default implementation shortcut.
 
-### Proposed deletion action and required contract follow-up
+### Manual deletion (deferred)
 
-Propose a user-initiated **Delete all chats in this browser session** action, available without registration. It covers active and previous conversations owned by that session, revokes its access, and begins the same bounded purge process. Keep New chat as a separate action that creates a conversation without deleting anything.
+The assignment does not require a **Delete all chats in this browser session** control. It is deferred as [FB-001](feature-backlog.md#backlog), not a prerequisite for M1. Do not implement a deletion endpoint, confirmation UI, durable deletion receipt, or post-revocation deletion-replay workflow now. New chat remains a separate action that does not delete history.
 
-The action needs an explicit confirmation explaining its scope. Commit revocation/logical deletion before reporting that access has been removed. Do not report physical purge or backup/provider erasure before it has occurred. A concurrent generation must fail its live-session/deletion fence and cannot recreate data; a repeated deletion request must not affect a newly established session.
-
-This policy proposal requires a focused API/UX amendment **before implementation and public release**. The current API has no deletion endpoint. That amendment must define the method/path, proof of session ownership, CSRF protection, durable operation receipt, repeat behavior after revocation/cookie removal, uncertain outcomes, and user-visible completion status. Add any required receipt/deletion fields to the data model at the same time. Do not infer an endpoint or claim a working deletion feature from this policy alone.
-
-If a browser has already lost its session cookie, conversation IDs alone must not authorize deletion or disclosure. Explain the automatic retention limit and provide the approved support route without requesting raw tokens or a copy of the user's transcript.
+If approved later, the feature needs its own API/UX/data amendment covering ownership, CSRF, confirmation, durable outcome/replay, and concurrent completion. Historical `EC-DATA-08` and `EC-DATA-09` preserve those future cases. Chat text and conversation IDs alone authorize neither deletion nor disclosure. Lost-cookie help explains automatic retention and the verified support route without requesting raw tokens or transcripts.
 
 ### Purge and restore behavior
 
-Use the [data model's deletion boundaries](data-model.md#10-retention-deletion-and-recovery). Purge normalized text, messages, attempts, provider-call data, and allowed associated artifacts together. Retain only the required tombstone/receipt metadata for the approved period. Cleanup jobs must be scoped, idempotent, observable, and tested against a second session to prove they do not delete unrelated data.
+Use the [data model's cleanup boundaries](data-model.md#10-retention-cleanup-and-recovery). After access cutoff, purge normalized text, messages, attempts, provider calls, associated artifacts, conversations, and session material under the same retention boundary. Cleanup is scoped, idempotent, observable, and tested against a second session. Late handlers cannot recreate purged rows.
 
-Backup restoration must happen with public access disabled. Reapply post-backup deletion/revocation records before restoring access. If those records cannot be reliably recovered, invalidate restored sessions and purge their retained payload before reopening the service; do not revive a deleted conversation from an old snapshot. Define the durable deletion record and restore procedure in the required contract/operations follow-up.
+Restore backups with public access disabled. M1 uses the conservative fallback: invalidate restored sessions and purge retained visitor payload before reopening when post-backup revocations cannot be reconstructed. Do not revive revoked access or build a separate deletion ledger. Document and test the exact procedure and recovery point in deployment/operations. Normal application restart still preserves accessible history.
 
 ## 8. Logging, evaluation evidence, and operator access
 
@@ -276,11 +271,11 @@ Do not send raw visitor messages to analytics, a second provider, an external lo
 
 ## 9. Abuse prevention and spending controls
 
-The generation, payload, context, output, deadline, attempt, polling, and capacity proposals already live in [architecture configuration](architecture.md#initial-configuration-proposals). Keep them in one typed configuration source when implemented. Apply them to direct API clients as well as the UI.
+The generation, payload, context, output, deadline, attempt, polling, and capacity defaults already live in [architecture configuration](architecture.md#initial-configuration-defaults). Keep them in one typed configuration source when implemented. Apply them to direct API clients as well as the UI.
 
-Use the data model's database-backed fixed UTC windows initially. The following additional thresholds are proposals to validate, not measured capacity:
+Use the data model's database-backed fixed UTC windows initially. The following initial thresholds require verification; they are not measured capacity:
 
-| Operation | Proposed additional limit | Notes |
+| Operation | Initial additional limit | Notes |
 | --- | --- | --- |
 | New session creation | 10 per network subject per hour | Reusing a live session is a read-class operation, not another creation. |
 | New conversation creation | 20 per session per day and 60 per network subject per day | Creation replay does not consume another creation quota. |
@@ -295,7 +290,7 @@ Check idempotency before charging a new generation/creation quota. General abuse
 
 Before public access, set an explicit operating budget and alert thresholds for the actual provider/account. A request quota is not a guaranteed spending cap. Use a provider-side hard spend restriction if available and verified, plus a server generation kill switch and monitored usage. Account for all phases, failures, and unknown remote work. If a guaranteed cap is required but the selected provider cannot enforce one, change the release plan rather than promising a cap from local estimates.
 
-When generation is disabled, continue allowing authorized history/status reads and required deletion/cleanup. Stop accepting new attempts and dispatching new provider calls. Already dispatched calls may still finish remotely; their results can complete only if all required checks have already passed or can finish locally within the deadline. If a remaining required check needs a blocked provider call, fail the attempt safely. Do not bypass a review step to drain in-flight work.
+When generation is disabled, continue allowing authorized history/status reads and required automatic cleanup. Stop accepting new attempts and dispatching new provider calls. Already dispatched calls may still finish remotely; their results can complete only if all required checks have already passed or can finish locally within the deadline. If a remaining required check needs a blocked provider call, fail the attempt safely. Do not bypass a review step to drain in-flight work.
 
 ## 10. Milestone 2 source and retrieval security
 
@@ -323,7 +318,7 @@ These checks are required evidence for the adopted scope. They are not passing r
 | Gate failures | Missing/malformed verdicts, timeout, schema failure, invented/non-null Milestone 1 sources, and output rejection never expose a candidate. |
 | Ownership and browser attacks | Two-session resource isolation, CSRF/Origin cases, shared-cache leakage, script/link injection, and cookie/session expiry. |
 | Concurrency and abuse | Replays, competing retries, quota boundaries, fake forwarded IP headers, expired slots, provider timeouts, and kill-switch behavior. |
-| Data lifecycle | Purge deadline, old-creation-key replay, concurrent completion/deletion, unknown deletion outcomes, backup restore, and cleanup isolation. |
+| Data lifecycle | Purge deadline, expiry/revocation versus completion, old-session access/replay, conservative backup restore, and cleanup isolation. Manual deletion cases are deferred, not M1 gates. |
 | Secrets and access | Client bundle, artifacts, logs, migrations, and operator permissions expose no credentials or unintended visitor data. |
 
 Retain the brief's ten fixed questions and three fresh responses for consistency comparison. Add safety-specific cases without silently replacing that set. After a prompt, classifier, template, model setting, safety rule, context builder, schema, or retrieval change, rerun the affected checks; prompt changes also require the full fixed question set. Record versions and results, including false refusals and unfavorable outcomes.
@@ -332,7 +327,7 @@ Retain the brief's ten fixed questions and three fresh responses for consistency
 
 | Severity | Examples | Response |
 | --- | --- | --- |
-| Release blocker | Required exclusion bypass, harmful high-consequence advice, invalid output shown as successful, cross-session disclosure/write, exposed credential, ineffective required deletion/purge, or a critical exploitable access flaw. | Stop release or disable the affected live capability; contain, fix, reproduce, and pass regression checks before restoring it. |
+| Release blocker | Required exclusion bypass, harmful high-consequence advice, invalid output shown as successful, cross-session disclosure/write, exposed credential, ineffective required expiry/revocation/purge, or a critical exploitable access flaw. | Stop release or disable the affected live capability; contain, fix, reproduce, and pass regression checks before restoring it. |
 | Quality finding | Unsupported low-risk facts, changing non-prohibited numbers, unfindable attribution, unnecessary refusal, or unhelpful hedging without an immediate safety risk. | Preserve and count in evaluation; prioritize a general improvement and rerun checks. Do not hide or hardcode around it. |
 | Operational failure | Provider outage, storage failure, quota exhaustion, or uncertain network outcome with no proven exposure. | Use the contract's visible error/recovery behavior. Escalate if it causes unsafe output, duplicate work, data loss, or missed retention deadlines. |
 
@@ -342,27 +337,27 @@ For an incident: stop new affected work, preserve minimal safe evidence, determi
 
 ### Release review
 
-Before public traffic, the maintainer must be able to point to:
+Pre-deployment clearance requires items 1–5. Item 6 verifies the deployed candidate afterward; public release and M1 completion require both stages. Before opening ordinary public use, the maintainer must be able to point to:
 
 1. Reviewed scope/policy choices, prompt/template versions, and passing required safety checks with permitted-question controls.
 2. Passing schema, ownership, CSRF, rendering, concurrency, deadline, and secret-exposure checks.
 3. Completed fixed-question and consistency evaluation records with preserved failures and an explicit review of potentially harmful factual errors.
-4. A working notice and the adopted deletion API/UX contract, confirmed purge/backups behavior, and verified provider/hosting data settings.
+4. A working notice that accurately describes automatic expiry/cleanup and the absence of manual deletion, confirmed purge/backups behavior, and verified provider/hosting data settings.
 5. Named operator responsibility, restricted access, budget/alerts, generation kill switch, incident procedure, and tested cleanup/restore behavior.
 6. Independent verification of the deployed version through a real external-browser chat, refusal, refresh/recovery, and empty Milestone 1 sources panel.
 
 Do not equate a green build, provider moderation, a valid JSON response, or a finite test suite with universal safety. Report exactly what was checked and which proposed decisions remain unresolved.
 
-## 12. Decisions and next document
+## 12. Decisions and implementation handoff
 
-| Decision | Proposal or remaining dependency |
+| Decision | Adopted baseline or remaining dependency |
 | --- | --- |
-| Supported audience/language | India-first everyday adults with global room is confirmed. English, the initial segment, and sensitive-use rules remain proposals; no identity/age collection. |
-| Mixed/ambiguous/sensitive requests | Adopt POL-06–POL-12 and test both refusals and permitted controls. |
+| Supported audience/language | India-first everyday adults, initially English-comfortable household food decision makers; no identity/age collection. |
+| Mixed/ambiguous/sensitive requests | POL-06–POL-12 adopted; test refusals and permitted controls. |
 | Session/CSRF protection | Use the construction in Section 6 with independent keys and recorded versions; implement and verify it against the API/data model. |
-| Retention | Adopt the Section 7 schedule only after confirming hosting/provider capabilities and approved user notice. |
-| Deletion scope | Propose all chats in the current browser session. The API/UX receipt and post-revocation recovery design still needs the focused amendment described above. |
+| Retention | Section 7 defaults adopted; verify actual enforcement and provider/backup limits before public operation. |
+| Manual deletion | Deferred as FB-001. No endpoint/UX/receipt amendment is required for M1. |
 | Abuse and spending | Review fixed-window thresholds against expected traffic and shared networks; select a real operating budget before public calls. |
 | Release ownership | Name the maintainer/privacy contact and record the review outcome before public use. |
 
-Next document: `docs/design-guide.md`, using the [Gusto NutriBite identity and product positioning](product-positioning.md). Define the appearance, components, mobile behavior, accessibility, notices, refusal/error presentation, and proposed deletion confirmation using this policy and the existing UX/API drafts. Keep exact assistant wording in `prompt-spec.md`.
+Follow the [implementation plan](phase-wise-implementation-plan.md) and existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance. Use the existing [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html) for UI presentation; verify notices, mobile, accessibility, and refusal/error states during implementation, with no manual-deletion control. Exact assistant wording stays in [prompt-spec.md](prompt-spec.md).

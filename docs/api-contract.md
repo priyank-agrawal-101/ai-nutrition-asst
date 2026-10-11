@@ -1,12 +1,12 @@
 # Gusto NutriBite: API Contract
 
-Status: Draft for review. These endpoints and schemas are proposed; no API is implemented or tested.
+Status: Adopted M1 API baseline, 11 October 2026. No API or executable schema is implemented or tested.
 
 Last updated: 11 October 2026.
 
 ## 1. Purpose and scope
 
-This document defines the HTTP contract between the chat interface and backend: paths, payloads, validation, ownership, completion states, errors, and recovery. It carries forward the [architecture](architecture.md), [product requirements](product-spec.md), and [UX flows](ux-flow.md). Proposed product behavior and architecture limits remain proposed until reviewed.
+This document defines the HTTP contract between chat and backend: paths, payloads, validation, ownership, completion, errors, and recovery. It carries forward the adopted [architecture](architecture.md), [product requirements](product-spec.md), and [UX](ux-flow.md). The [implementation plan](phase-wise-implementation-plan.md) adopts these as the M1 baseline; actual provider compatibility and executable schema checks remain required.
 
 Use this document as the home for public field names and wire behavior. Database tables are defined in the draft [data model](data-model.md); policy and privacy rules belong in `safety-and-security.md`; prompts belong in `prompt-spec.md`. Once code exists, link the runtime schemas here and check that they match this contract.
 
@@ -20,7 +20,7 @@ Milestone 1 answers without retrieval. Milestone 2 uses the same API version, en
 | Transport | HTTPS in production. Local HTTP is allowed only for local development. |
 | Request encoding | UTF-8 JSON for POST requests, with `Content-Type: application/json`. An optional `charset=utf-8` parameter is allowed. |
 | Response encoding | `application/json; charset=utf-8`. No HTML error pages from application handlers. |
-| Request size | Proposed maximum 16,384 bytes, enforced while reading the body, before parsing. Compressed request bodies are not supported. |
+| Request size | Initial maximum 16,384 bytes, enforced while reading the body, before parsing. Compressed request bodies are not supported. |
 | Field names | `snake_case`. Fields declared in a response type are required; use explicit `null` where declared nullable. |
 | Unknown fields | Reject unknown request fields and query parameters. Validate server output against strict schemas. |
 | IDs | Canonical lowercase UUID strings. Client operation IDs use random UUIDv4; server resource IDs are opaque UUIDs. IDs are not credentials. |
@@ -37,11 +37,11 @@ An intermediary may still return a non-JSON error or drop a connection. The clie
 
 ### Session and CSRF rules
 
-Use the anonymous cookie session described in [the architecture](architecture.md#4-conversation-and-session-design). The proposed production cookie name is `__Host-nutrition_session`, with `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, and no `Domain`. A separately named local-development cookie may omit `Secure`; it must never be used in production.
+Use the anonymous cookie session described in [the architecture](architecture.md#4-conversation-and-session-design). The production cookie name is `__Host-nutrition_session`, with `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, and no `Domain`. A separately named local-development cookie may omit `Secure`; it must never be used in production.
 
 All conversation, turn, submission-status, and retry endpoints require a live session and a server-side ownership check. Missing, invalid, expired, and revoked sessions receive the same `401 SESSION_UNAVAILABLE`. Do not create a replacement session as a side effect of these requests.
 
-Mutating requests require an exact allowed `Origin`. All POST endpoints except session establishment also require `X-CSRF-Token`, obtained from the session response and bound to that session. Missing or mismatched tokens receive `403 REQUEST_FORBIDDEN`. Keep the CSRF token in memory, not a URL. It is distinct from the session credential; knowing it alone grants no access. The proposed construction is defined in [safety and security](safety-and-security.md#csrf-construction-and-rotation).
+Mutating requests require an exact allowed `Origin`. All POST endpoints except session establishment also require `X-CSRF-Token`, obtained from the session response and bound to that session. Missing or mismatched tokens receive `403 REQUEST_FORBIDDEN`. Keep the CSRF token in memory, not a URL. It is distinct from the session credential; knowing it alone grants no access. The adopted construction is defined in [safety and security](safety-and-security.md#csrf-construction-and-rotation).
 
 Session establishment is the bootstrap exception: require the allowed Origin and JSON content type, but no existing CSRF token. Do not enable cross-origin credentialed CORS. Browser same-origin protections and the server checks must also hold for local evaluation clients, which should follow the same session/CSRF flow.
 
@@ -110,7 +110,7 @@ type SessionView = {
 };
 ```
 
-All limits are positive integers. Initial proposed values are `2000`, `16384`, `20`, `3`, and `60`, respectively, from [the architecture configuration](architecture.md#initial-configuration-proposals). The server returns effective values; clients must not hardcode these examples. Session expiry remains seven days absolute as proposed in architecture; reading or reusing the session does not extend it.
+All limits are positive integers. Initial default values are `2000`, `16384`, `20`, `3`, and `60`, respectively, from [the architecture configuration](architecture.md#initial-configuration-defaults). The server returns effective values; clients must not hardcode these examples. Session expiry remains seven days absolute under the adopted architecture default; reading or reusing the session does not extend it.
 
 The CSRF token is an opaque base64url string of 43–128 characters. No raw session token, session database ID, provider setting, token budget, or secret appears in this response. Internal context and model limits stay on the server.
 
@@ -148,7 +148,7 @@ type AnswerContent = {
 | `source.url` | `null`, or an absolute HTTPS URL of at most 2,048 code points. No credentials, control characters, or executable schemes. No relative, `file:`, `data:`, or `javascript:` URLs. |
 | `source.locator` | `null`, or a non-whitespace string of 1–300 code points identifying a page, section, or passage. |
 
-Every nested object is strict: reject unexpected keys, omitted required keys, and wrong types. These sizes are proposed protocol validation limits consistent with the architecture; they are not target answer lengths. Prompt style belongs in `prompt-spec.md`.
+Every nested object is strict: reject unexpected keys, omitted required keys, and wrong types. These sizes are adopted protocol validation limits consistent with the architecture; they are not target answer lengths. Prompt style belongs in `prompt-spec.md`.
 
 Milestone rules:
 
@@ -258,7 +258,7 @@ For a failed turn, use `not_latest_turn` before `attempt_limit_reached` if both 
 
 A completed refusal or clarification follows exactly the completed state. Neither gets a Retry action. Unsafe or invalid candidates never appear in `assistant_message`, `failure.message`, or HTTP error details.
 
-`ConversationView.turns` contains all accepted turns in ascending, contiguous sequence order. `turn_count` equals its length, including refusals and failed questions; retries do not increase it. With the proposed 20-turn bound, there is no pagination or silent omission. An empty conversation has `revision: 0`, `turn_count: 0`, `active_turn_id: null`, and `turns: []`.
+`ConversationView.turns` contains all accepted turns in ascending, contiguous sequence order. `turn_count` equals its length, including refusals and failed questions; retries do not increase it. With the adopted 20-turn bound, there is no pagination or silent omission. An empty conversation has `revision: 0`, `turn_count: 0`, `active_turn_id: null`, and `turns: []`.
 
 Maintain a monotonically increasing conversation revision. Increment it atomically whenever a turn starts, completes, fails, or begins another attempt. A conversation response is a consistent snapshot: every nested `conversation_revision` equals the top-level `revision`. At most one turn is running, and `active_turn_id` identifies it; otherwise it is `null`.
 
@@ -290,13 +290,13 @@ Persist this client ID before the request and retain it until the result is conf
 
 The pair `(session, client_conversation_id)` is unique. Repeating it returns `200` and the same conversation's **current** snapshot, even if that conversation has since gained turns. It never creates a second conversation or clears existing messages. On an uncertain creation response, repeat this POST with the same ID; it has no generation side effect.
 
-Only update the browser's active conversation after success. Creation does not delete, cancel, or reassign another conversation. The UI follows the unsent-draft and pending-request rules in [UX-06](ux-flow.md#ux-06-start-a-new-chat--proposed). Separate tabs may own separate conversations under the same session.
+Only update the browser's active conversation after success. Creation does not delete, cancel, or reassign another conversation. The UI follows the unsent-draft and pending-request rules in [UX-06](ux-flow.md#ux-06-start-a-new-chat). Separate tabs may own separate conversations under the same session.
 
 ### Read a conversation
 
 `GET /conversations/{conversation_id}` returns `200 Success<ConversationView>`. Check the live session and ownership before reading. Reconcile an expired running attempt before constructing a snapshot, following architecture's completion fence. This housekeeping cannot invoke a model.
 
-An absent, deleted, or unowned conversation returns the identical `404 CONVERSATION_UNAVAILABLE` response. A storage failure returns `503 STORAGE_UNAVAILABLE`, never an empty conversation. Keep visible messages while loading fails, as required by [UX-07](ux-flow.md#ux-07-refresh-or-return--proposed).
+An absent, deleted, or unowned conversation returns the identical `404 CONVERSATION_UNAVAILABLE` response. A storage failure returns `503 STORAGE_UNAVAILABLE`, never an empty conversation. Keep visible messages while loading fails, as required by [UX-07](ux-flow.md#ux-07-refresh-or-return).
 
 ## 6. Submission, status, and retry endpoints
 
@@ -383,7 +383,7 @@ Apply these checks without widening access:
 
 For initial submission, `409 CONVERSATION_BUSY` means another turn is running; include only its owned turn ID for status recovery. `409 CONVERSATION_LIMIT_REACHED` means a new question exceeds the turn or full-context budget; preserve history and offer a new chat. Do not trim older context to accept it.
 
-Retain operation receipts for at least as long as their owning conversation is accessible. Do not evict them on a short response-cache timer. If records are deleted under the approved retention policy, make the old conversation unavailable; never recreate it under an old operation ID. Session-scoped conversation creation keys likewise must not be silently reused within a live session after deletion.
+Retain operation receipts for as long as their owning conversation is accessible. Do not evict them on a short response-cache timer. M1 purges conversations only after owner expiry/revocation; old sessions and operation IDs cannot recreate them. Do not delete individual conversations under a live session or add a tombstone/deletion-receipt protocol for the deferred manual control.
 
 Exactly one accepted turn and at most one assistant response per turn are application guarantees. Exactly one paid provider request is not guaranteed after network failures. Measure known attempts and usage as required by [the efficiency guide](token-optimization-and-efficiency.md); unavailable usage is unknown, not zero.
 
@@ -437,7 +437,7 @@ When a wait duration is known, return a positive integer `retry_after_seconds` a
 | `405` | `METHOD_NOT_ALLOWED` | Unsupported method. Correct the client; include `Allow`. |
 | `409` | `IDEMPOTENCY_CONFLICT` | An operation ID was reused with a different normalized payload. Check the saved operation and correct the client action. |
 | `409` | `CONVERSATION_BUSY` | A different turn is active. Check its status; the rejected new submission was not accepted. |
-| `409` | `CONVERSATION_LIMIT_REACHED` | Proposed turn/context limit reached. Start a new chat; preserve history. |
+| `409` | `CONVERSATION_LIMIT_REACHED` | Turn/context limit reached. Start a new chat; preserve history. |
 | `409` | `TURN_ACTIVE` | Retry target is currently running. Check status. |
 | `409` | `STALE_ATTEMPT` | A new retry targeted an outdated failed attempt. Check status before another deliberate retry. |
 | `409` | `RETRY_NOT_ALLOWED` | Completed turn, older turn, or exhausted attempts. Read current eligibility. |
@@ -497,7 +497,7 @@ flowchart TD
 1. Before a POST, persist the active conversation ID and relevant client operation IDs in `sessionStorage`. On retry, retain the failed attempt ID as well. Keep one visible question. The server remains authoritative if browser storage is unavailable.
 2. On refresh, validate the existing session, then load the conversation and check the saved operation marker. Never send a generation POST automatically on page load.
 3. If the turn ID is unknown, use the submission lookup. If recorded, adopt its server turn ID and merge the snapshot by revision. If unrecorded, an explicit resend uses the same ID and retained question. If the text was not saved and is no longer available after reload, explain that it cannot be recovered; do not invent or automatically resubmit it.
-4. Poll running state every two seconds initially, backing off to five seconds after ten seconds. Stop automatic polling after 70 seconds from the start of that recovery window and offer Check again. These timings implement the architecture's proposed polling range. Respect a larger `Retry-After` if provided.
+4. Poll running state every two seconds initially, backing off to five seconds after ten seconds. Stop automatic polling after 70 seconds from the start of that recovery window and offer Check again. These timings implement the architecture's polling defaults. Respect a larger `Retry-After` if provided.
 5. A client timer never marks the stored attempt failed. Only the server can reconcile its database deadline. Check again can run after automatic polling stops without starting generation.
 6. A failed turn allows a new attempt only through the explicit retry endpoint and current eligibility. An edited/new question uses a new submission ID after the previous turn resolves.
 7. Clear the pending marker after authoritative resolution. Keep the active conversation ID for refresh recovery. Ignore stale responses from a previous active conversation or lower revision.
@@ -650,15 +650,15 @@ Expose no connection strings, environment values, migration details, model crede
 
 Keep this API unchanged when enabling Milestone 2. The public `Source | null` union already supports citations. Milestone policy and retrieval validation change behind it; no client field selects a milestone or bypasses source rules.
 
-Before implementation, review and freeze the complete v1 schemas, including citation fields, envelopes, and error enums. An incompatible change after release requires explicit versioning and migration, not silently changing a field meaning. An internal provider-specific schema can be narrower, but it must map to and pass the public runtime schema. This document does not choose provider endpoint syntax or expose provider response objects.
+Materialize and verify the complete adopted v1 schemas, including citations, envelopes, and error enums, before freezing the executable contract for release. An incompatible change after release requires explicit versioning and migration. An internal provider schema can be narrower, but must map to and pass the public runtime schema. This document does not choose provider endpoint syntax or expose provider response objects.
 
 Idempotent replay of a stored response is request recovery, not an answer cache. A fresh evaluation repetition uses a new submission ID and the conversation conditions specified by `evaluation.md`; repeating the same HTTP operation must not count as a new model sample.
 
-### Privacy work still required
+### Privacy implementation boundary
 
-New chat does not delete messages. The [safety/privacy draft](safety-and-security.md#7-privacy-retention-and-deletion-proposals) proposes bounded cleanup after access expiry and a user-initiated deletion action covering all chats in the current browser session. This API does not yet define that endpoint. Before implementing the proposal, add the method/path, ownership/CSRF checks, durable deletion receipt, repeat behavior after revocation, uncertain-outcome recovery, and completion status. Do not claim that deletion is implemented or expose a control without a reviewed working contract.
+New chat does not delete messages. M1 uses seven-day session access and bounded automatic cleanup after expiry/revocation under [safety and security](safety-and-security.md#7-privacy-retention-and-cleanup). Manual session-wide deletion is deferred as [FB-001](feature-backlog.md#backlog). There is no M1 deletion endpoint, receipt, confirmation UI, or post-revocation replay contract to implement.
 
-Proposed rate limits, retention periods, operator access, user notice, and CSRF construction are owned by [safety and security](safety-and-security.md); operational procedures belong in `deployment-and-operations.md`. The public failure fields and ownership checks in this contract still apply to their implementation.
+Rate limits, retention, operator access, user notice, and CSRF are owned by safety/security; operational procedures belong in [deployment/operations](deployment-and-operations.md). Verify actual enforcement and provider/backup limits before public operation. Do not claim a deletion control exists or accept chat text as a data-control command.
 
 ### Contract checks to carry into testing
 
@@ -675,4 +675,4 @@ Proposed rate limits, retention periods, operator access, user notice, and CSRF 
 | Milestone compatibility | Same paths and strict response schema accept null-source fixtures and valid future citation fixtures; Milestone 1 rejects the latter at its policy layer. | NEXT-01 |
 | Evaluation | Fresh repetitions generate new samples; HTTP replays do not; keep earlier failed attempts and available usage for review. | EVAL-02, EVAL-05–EVAL-06 |
 
-The draft [data model](data-model.md) defines storage, and [safety and security](safety-and-security.md) defines policy/control proposals. Next document: `docs/design-guide.md`. Complete the proposed deletion API/UX amendment before implementation and public release.
+The [data model](data-model.md) defines storage and [safety/security](safety-and-security.md) defines policy/controls. Follow the approved [implementation plan](phase-wise-implementation-plan.md) with the existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance. Use the existing design reference/preview during UI work; a manual-deletion amendment does not block M1.

@@ -1,6 +1,6 @@
 # Gusto NutriBite: Code Conventions
 
-Status: Implementation baseline for the proposed architecture. No source files, tooling configuration, or migrations are created by this document.
+Status: Implementation baseline for the selected architecture. No source files, tooling configuration, or migrations are created by this document.
 
 Last updated: 11 October 2026.
 
@@ -108,7 +108,7 @@ Centralise API calls in the client boundary. Parse responses against the public 
 
 Effects must have cleanup and stable dependencies. Mounting/restoring a view may start the contract's reads, but must not create a generation mutation as a side effect of rendering. Avoid optimistic insertion of model text; pending UI state is different from a committed assistant message. Do not introduce a query/state-management dependency until the existing flow demonstrates a need.
 
-Use semantic HTML, actual form/button behaviour, and CSS Modules within the architecture's styling choice. Shared visual values come from the eventual design tokens; do not create an independent palette or component framework in code conventions. Test locators and accessibility verification are owned by testing, and user-facing wording by UX/brand/prompt documents.
+Use semantic HTML, actual form/button behavior, and CSS Modules. Derive visual tokens from the existing Wise reference/preview and chat-specific choices recorded during UI implementation; do not create an independent palette or component framework here. Testing owns locators/accessibility verification; UX/brand/prompts own wording.
 
 ## 8. Dependencies, changes, and handoff
 

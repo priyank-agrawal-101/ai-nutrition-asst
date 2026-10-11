@@ -2,14 +2,15 @@
 
 Capture feature ideas, enhancements, optional improvements, and product opportunities here, whether discovered during development, suggested by the AI coding agent, or added manually. This is a place for possibilities, including technical improvements and optimizations; it does not change the current scope.
 
-The [product roadmap](product-roadmap.md) owns milestone direction. The [product specification](product-spec.md) owns requirements. A `docs/phase-wise-implementation-plan.md`, when created, owns detailed execution for the approved scope.
+The [product roadmap](product-roadmap.md) owns milestone direction, the [product specification](product-spec.md) owns requirements, and the [implementation plan](phase-wise-implementation-plan.md) owns execution for approved scope.
 
 ## Backlog
 
-No ideas captured yet. Add the first entry below; the table is intentionally empty.
+Manual deletion was deferred during the approved 11 October 2026 scope audit. It has no committed delivery milestone.
 
 | ID | Feature or idea | Description and expected value | Category | Suggested priority | Status | Target milestone | Notes or dependencies |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| FB-001 | Delete all chats in this browser session | Optional user control to revoke access and request cleanup of all session chats. | Feature | Unassigned | Deferred | Unassigned | Outside the original M1 assignment; deferred by the approved [plan](phase-wise-implementation-plan.md#current-scope) on 11 October 2026. If later approved, define ownership/CSRF, confirmation, durable receipts, uncertain outcomes, and completion races. Automatic M1 expiry/revocation cleanup remains required. |
 
 Use these values:
 

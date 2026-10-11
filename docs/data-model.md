@@ -1,6 +1,6 @@
 # Gusto NutriBite: Data Model
 
-Status: Draft for review. These tables, constraints, and migrations are proposed. No database has been created or migrated.
+Status: Adopted M1 data baseline, 11 October 2026. No database or migration exists; SQL implementation and verification remain outstanding.
 
 Last updated: 11 October 2026.
 
@@ -10,11 +10,11 @@ This document defines how the application stores sessions, conversations, messag
 
 The design supports the [product requirements](product-spec.md), especially persistent ordered conversations, isolated visitors, strict response validation, explicit retry, and repeatable evaluation. It also follows the [efficiency guide](token-optimization-and-efficiency.md): preserve failures and count known work without claiming unknown usage is zero.
 
-Use PostgreSQL and Drizzle as proposed in architecture. Final version choices and operating limits still need review. Use separate databases for local development, automated tests, previews, and production. All project-owned configuration, migrations, and controlled artifacts belong within this project; no other project's database or runtime data is reused.
+Use PostgreSQL and Drizzle selected in architecture, pinning compatible versions during scaffolding. Initial limits follow architecture and safety/security. Keep local, test, evaluation, preview, and production databases separate. All project-owned configuration, migrations, and artifacts belong within this project; never reuse another project's database or runtime data.
 
 ## 2. Storage decisions
 
-| Decision | Proposed design | Reason |
+| Decision | Adopted baseline | Reason |
 | --- | --- | --- |
 | Unit of conversation | A turn is one accepted question, with one or more attempts and at most one assistant message. | Retry preserves the visible question and earlier failures. |
 | Message format | User text in a text column; accepted assistant content in JSONB. | Preserve the original question and the structured answer/claims contract. |
@@ -22,7 +22,7 @@ Use PostgreSQL and Drizzle as proposed in architecture. Final version choices an
 | State | Store turn and attempt status; derive active turn, retry eligibility, and history counts. | A partial unique index can enforce one running turn. Avoid extra mutable copies of the transcript. |
 | Ownership | Conversations belong to sessions; descendants inherit ownership through joins. | No browser-supplied owner IDs and no unscoped resource lookup. |
 | Conversation revision | One stored counter per conversation, updated with visible state transitions. | Clients can reject stale responses from overlapping reads. |
-| Accepted content | Immutable after completion except under the approved deletion process. | Earlier answers and evaluation evidence must not silently change. |
+| Accepted content | Immutable after completion; remove visitor payload only through scoped expiry/revocation cleanup. | Earlier answers and evaluation evidence must not silently change. |
 | Invalid content | No failed model candidate in the normal message table. | Invalid output cannot appear as a successful answer or enter later context. |
 | Evaluation | Controlled files outside visitor tables, using a dedicated evaluation environment. | No evaluator dashboard or general visitor-transcript export is required. |
 | Rate and capacity state | Small PostgreSQL quota and generation-slot tables. | Correctness must survive restarts and additional app instances. |
@@ -61,8 +61,6 @@ erDiagram
         uuid session_id FK
         uuid client_conversation_id
         bigint revision
-        timestamptz deleted_at
-        timestamptz purged_at
     }
     TURNS {
         uuid id PK
@@ -113,18 +111,18 @@ No claims table is needed for Milestone 1. Claims remain ordered inside the acce
 | Column | PostgreSQL type | Rules and purpose |
 | --- | --- | --- |
 | `id` | `uuid` | PK; internal ownership identity, not returned as a session credential. |
-| `token_digest` | `bytea` | UQ; exactly 32 bytes. SHA-256 digest of a cryptographically random session token under the proposed session design. |
+| `token_digest` | `bytea` | UQ; exactly 32 bytes. SHA-256 digest of a cryptographically random session token under the adopted session design. |
 | `csrf_nonce` | `bytea` | Exactly 32 random bytes for session-bound CSRF token derivation. |
 | `csrf_key_version` | `text` | Bounded key identifier, not a secret key. |
 | `created_at` | `timestamptz` | Database creation time. |
 | `expires_at` | `timestamptz` | Absolute access expiry; must be later than `created_at`. |
 | `revoked_at` | `timestamptz`, nullable | Explicit revocation. A non-null value makes the session unusable immediately. |
 
-Generate the proposed session token from at least 32 random bytes. Store only its digest and send the token in the protected cookie. This use of SHA-256 is for a high-entropy random bearer token, not for hashing a human password.
+Generate the session token from at least 32 random bytes. Store only its digest and send the token in the protected cookie. This use of SHA-256 is for a high-entropy random bearer token, not for hashing a human password.
 
-For repeated session reads, derive the proposed public CSRF token using the [versioned HMAC construction](safety-and-security.md#csrf-construction-and-rotation). The raw CSRF key remains outside the database. Review and test its verification and rotation behavior before implementation; this table supplies the needed storage without exposing the session credential.
+For repeated session reads, derive the public CSRF token using the [versioned HMAC construction](safety-and-security.md#csrf-construction-and-rotation). The raw CSRF key remains outside the database. Review and test its verification and rotation behavior before implementation; this table supplies the needed storage without exposing the session credential.
 
-A live-session predicate requires `revoked_at IS NULL` and `expires_at > clock_timestamp()`. Reading a session does not extend it. Database time and cookie expiry both apply; cookie presence alone does not establish access. The seven-day value remains an [architecture proposal](architecture.md#initial-configuration-proposals), not a retention period.
+A live-session predicate requires `revoked_at IS NULL` and `expires_at > clock_timestamp()`. Reading a session does not extend it. Database time and cookie expiry both apply; cookie presence alone does not establish access. The seven-day access default is in [architecture](architecture.md#initial-configuration-defaults), not a retention period.
 
 Indexes: unique token digest; an expiry index for cleanup. Do not add last-seen tracking or device fingerprints unless a concrete requirement and privacy decision justify them.
 
@@ -138,14 +136,12 @@ Indexes: unique token digest; an expiry index for cleanup. Do not add last-seen 
 | `revision` | `bigint` | Starts at `0`; nonnegative and within the API safe-integer range. |
 | `created_at` | `timestamptz` | Creation time. |
 | `updated_at` | `timestamptz` | Last visible conversation-state mutation; starts equal to `created_at`. |
-| `deleted_at` | `timestamptz`, nullable | Logical deletion marker; excludes the conversation from every public query. |
-| `purged_at` | `timestamptz`, nullable | Set only after child content/usage records have been purged. Requires `deleted_at`. |
 
 Enforce UQ `(session_id, client_conversation_id)`. A matching creation replay resolves this row and returns its current snapshot. It never resets `revision` or removes turns.
 
-A logically deleted conversation leaves a small **tombstone**: an identity row that prevents reuse of its creation key while the session remains live. A replay against the tombstone returns unavailable rather than creating a new conversation. A tombstone is still retained data; its lifetime and removal must be covered by the privacy policy.
+M1 does not delete individual conversations under a live session. Expiry/revocation makes the whole session unavailable before cleanup. Existing conversation/turn/attempt rows retain operation keys throughout access; after cutoff, the old session cannot replay them. No conversation tombstone, `deleted_at`/`purged_at` marker, or user-deletion receipt is required for deferred [FB-001](feature-backlog.md#backlog).
 
-Do not store `turn_count` or `active_turn_id` as extra columns. Derive them from the turn rows in the same read snapshot. For the proposed bounded history, these queries are small. Index `(session_id, created_at)` for scoped maintenance and deleted rows by `deleted_at` for purge selection.
+Do not store `turn_count` or `active_turn_id` as extra columns. Derive them in the same read snapshot; bounded history keeps these queries small. Index `(session_id, created_at)` for maintenance. Discover purge candidates from session expiry/revocation, not a second conversation-deletion state machine.
 
 ## 5. Turns, attempts, and messages
 
@@ -204,7 +200,7 @@ Do not store `unknown` as a turn/attempt status. It is an inability to establish
 
 ### Attempt configuration and context
 
-`run_manifest` is a strict internal object, with a proposed maximum serialized size of 32 KiB. Store references and effective settings, not prompt text, secrets, or another transcript:
+`run_manifest` is a strict internal object, with an initial maximum serialized size of 32 KiB. Store references and effective settings, not prompt text, secrets, or another transcript:
 
 | Entry | Purpose |
 | --- | --- |
@@ -257,7 +253,7 @@ Do not assume `jsonb_typeof` checks alone validate the schema. The database chec
 | `provider` | `text` | Bounded provider identifier. |
 | `requested_model` | `text` | Bounded configured model identifier. |
 | `reported_model` | `text`, nullable | Provider-reported identifier when available. |
-| `request_settings` | `jsonb` | Strict allowlisted effective call settings, excluding messages and credentials; proposed maximum 8 KiB. |
+| `request_settings` | `jsonb` | Strict allowlisted effective call settings, excluding messages and credentials; initial maximum 8 KiB. |
 | `provider_request_id` | `text`, nullable | Bounded external request ID; private operational metadata. |
 | `status` | `text` | `started`, `succeeded`, `failed`, or `unknown`; describes the external call, not answer acceptance. |
 | `started_at` | `timestamptz` | Local dispatch-intent time. |
@@ -299,7 +295,7 @@ This table supports atomic limits across app restarts/instances. Detailed thresh
 
 Use composite PK `(rule_key, subject_digest, key_version, window_start)` and an expiry index. For a new generation attempt, check and increment all applicable buckets in the same acceptance transaction; roll back them all if acceptance fails. Replays do not consume another generation quota. General HTTP-abuse limits may count unsuccessful/replayed requests separately, as the API allows.
 
-The [abuse-prevention proposal](safety-and-security.md#9-abuse-prevention-and-spending-controls) uses fixed UTC windows initially and requires boundary-burst checks. Key rotation must not reset an active window's protection. Retain a key/version for at least its bucket's active period, then remove expired bucket identifiers under the proposed retention schedule. A later rolling-window design would require a matching storage change.
+The [abuse-prevention baseline](safety-and-security.md#9-abuse-prevention-and-spending-controls) uses fixed UTC windows initially and requires boundary-burst checks. Key rotation must not reset an active window's protection. Retain a key/version for at least its bucket's active period, then remove expired bucket identifiers under the adopted retention schedule. A later rolling-window design would require a matching storage change.
 
 ### `generation_slots`
 
@@ -309,7 +305,7 @@ The [abuse-prevention proposal](safety-and-security.md#9-abuse-prevention-and-sp
 | `attempt_id` | `uuid`, nullable | UQ when present; FK to `attempts.id`. |
 | `leased_until` | `timestamptz`, nullable | Required with an attempt ID; null for a free slot. Matches that attempt's deadline. |
 
-Populate the configured capacity during controlled setup, initially four slots under the architecture proposal. Do not let requests insert extra capacity. Claim a free or expired slot with a locked, conditional update and store its attempt ID/deadline in the same transaction as acceptance. Make the attempt FK `DEFERRABLE INITIALLY DEFERRED` so the reservation and new attempt can be inserted together. Releasing a slot requires a confirmed terminal outcome or an expired lease, and must match the attempt ID; an old handler cannot release a slot that has been reassigned. A lost browser connection or unknown commit is not sufficient evidence to release it early.
+Populate the configured capacity during controlled setup, initially four slots under the architecture defaults. Do not let requests insert extra capacity. Claim a free or expired slot with a locked, conditional update and store its attempt ID/deadline in the same transaction as acceptance. Make the attempt FK `DEFERRABLE INITIALLY DEFERRED` so the reservation and new attempt can be inserted together. Releasing a slot requires a confirmed terminal outcome or an expired lease, and must match the attempt ID; an old handler cannot release a slot that has been reassigned. A lost browser connection or unknown commit is not sufficient evidence to release it early.
 
 An expired lease may be reused because the old attempt can no longer pass its time fence. Reconcile that old attempt separately using the normal lock order; do not lock its conversation while already holding a slot lock. A slot bounds accepted application work, not the number of remote requests a provider may still be processing after timeouts.
 
@@ -374,9 +370,9 @@ Nullable composite references are intentionally optional for a first attempt/use
 | An occupied slot references its attempt and deadline | Deferred attempt FK, paired-nullability check, unique attempt ID, and deferred deadline-equality check. |
 | Conversation sequence is contiguous | Conversation lock, rollback-safe allocation, and deferred integrity check; no per-turn deletion from a live chat. |
 | Revisions advance with visible mutations | Central mutation functions update revision once per transition; integration checks detect bypasses. |
-| A late response cannot complete | Conditional attempt ID/status, live-session, undeleted-conversation, and fresh database-time checks at finalization. |
+| A late response cannot complete | Conditional attempt ID/status, owned surviving conversation, live-session, and fresh database-time checks at finalization. |
 
-Implement deferred checks for affected parents on inserts, updates, and deletes, not only on the happy-path insert. Skip parent-existence checks only if that parent is genuinely removed in the same approved purge. Still enforce cross-row content/state integrity for a deleted conversation whose payload has not yet been purged.
+Implement deferred checks on inserts, updates, and deletes, not only the happy path. Skip parent-existence checks only when that parent is removed in the same approved purge. Still enforce cross-row integrity for inaccessible expired/revoked payload awaiting cleanup.
 
 Keep normal runtime writes behind the repository/turn-service layer. Give schema migration privileges to a separate role. The schema does not claim that PostgreSQL row-level security is already configured; ownership checks remain mandatory in server queries and transactions.
 
@@ -399,12 +395,12 @@ Use the architecture's short statement/lock limits and bounded transaction durat
 
 ### Create a conversation
 
-Lock/check the live session; look up `(session_id, client_conversation_id)`. Return an existing live conversation, reject a tombstone as unavailable, or insert a new empty row with revision zero. A concurrent insert is resolved through its unique key and a fresh owned lookup. An uncertain commit is resolved by replaying the same creation operation; never allocate a fresh key automatically.
+Lock/check the live session; look up `(session_id, client_conversation_id)`. Return the existing conversation or insert an empty row at revision zero. Concurrent insertion resolves through the unique key and a fresh owned lookup. An uncertain commit resolves by replaying the same creation operation; never allocate a fresh key automatically. An expired/revoked session cannot create or replay conversations.
 
 ### Accept an initial question
 
 1. Validate and normalize outside the transaction. Build bounded candidate context and record the observed revision.
-2. Under the session/conversation locks, recheck ownership, logical deletion, expiry, and the submission receipt. A matching receipt returns current state without reserving capacity.
+2. Under the session/conversation locks, recheck ownership, session expiry/revocation, and the submission receipt. A matching receipt returns current state without reserving capacity.
 3. Confirm the context revision is unchanged, no turn is running, and history limits permit the new turn. Rebuild outside the lock if context became stale.
 4. Generate turn, user-message, and first-attempt IDs before inserting. Allocate the next turn sequence; lock/check quota and claim a generation slot.
 5. Insert the turn, original user message, and first running attempt. Set the current-attempt pointer. Use one database acceptance time for the related creation fields and derive the deadline from it.
@@ -422,7 +418,7 @@ Earlier failed attempts and their calls stay intact. Retry does not add a user m
 
 ### Complete an answer, refusal, or clarification
 
-Validate the candidate before opening the final transaction. Under the standard locks, require a live session, undeleted conversation, matching current attempt, running states, and `deadline_at > clock_timestamp()`. Use a fresh clock reading, not PostgreSQL transaction-start `now()`, for this decision.
+Validate the candidate before the final transaction. Under standard locks, require a live session, owned surviving conversation, matching current attempt, running states, and `deadline_at > clock_timestamp()`. Use a fresh clock reading, not transaction-start `now()`.
 
 Insert the accepted assistant message, mark the attempt and turn completed, set finish/update times, advance conversation revision once, and release only the matching slot in the same transaction. Return a completed API response only after commit is confirmed. A code-authored refusal/clarification follows the same persistence path, with no fabricated provider-call row.
 
@@ -440,9 +436,9 @@ Revoked/expired sessions may still be reconciled by privileged maintenance; the 
 
 ## 9. Reads, indexes, and API mapping
 
-Resolve session identity from the cookie digest. Scope conversation reads through the session and exclude `deleted_at IS NOT NULL`. Scope every turn, attempt, submission, message, and provider-call lookup through its parent conversation; never authorize by resource ID alone.
+Resolve session identity from the cookie digest. Scope conversation reads through the live-session predicate. Scope every turn, attempt, submission, message, and provider-call lookup through its parent conversation; never authorize by resource ID alone.
 
-After any needed reconciliation, construct a conversation/status response using one SQL statement or a short `REPEATABLE READ` transaction. Hold/check the session and conversation against deletion as needed and recheck current expiry before returning data. All nested turns must share the same observed conversation revision. A series of unrelated autocommit reads is insufficient because the current attempt could change between them.
+After reconciliation, construct a conversation/status response in one SQL statement or short `REPEATABLE READ` transaction. Hold/check the session against revocation/purge and recheck current expiry before returning data. All nested turns share one observed revision. Unrelated autocommit reads are insufficient because the current attempt could change between them.
 
 | Public field or operation | Database source |
 | --- | --- |
@@ -467,7 +463,7 @@ Required query indexes are covered by primary/unique keys plus:
 | --- | --- |
 | Expiring sessions | `sessions(expires_at)` |
 | Scoped conversation maintenance | `conversations(session_id, created_at)` |
-| Purge candidates | Partial index on `conversations(deleted_at)` where deleted and not purged |
+| Revoked session cleanup | Partial index on `sessions(revoked_at)` where revoked; expiry cleanup also uses `sessions(expires_at)` |
 | Expired active attempts | Partial index on `attempts(deadline_at)` where status is running |
 | Call reports for an attempt | The `(attempt_id, phase, call_number)` unique index |
 | Time-bounded usage reports | `provider_calls(started_at)` |
@@ -475,35 +471,32 @@ Required query indexes are covered by primary/unique keys plus:
 
 Do not add duplicate indexes whose leading columns are already covered. Inspect representative query plans during implementation before adding JSONB or full-text indexes. The application has no public transcript search feature.
 
-## 10. Retention, deletion, and recovery
+## 10. Retention, cleanup, and recovery
 
-The [safety/privacy draft](safety-and-security.md#7-privacy-retention-and-deletion-proposals) proposes retention durations and session-wide user deletion. This section owns storage boundaries; the deletion API/UX and any required durable receipt fields still need a focused amendment before implementation.
+Follow the adopted [retention schedule](safety-and-security.md#retention-schedule). Seven-day session expiry or earlier security revocation denies access immediately; purge app-held payload within 24 hours. Manual session-wide deletion is deferred; no deletion API/UX/receipt amendment is required for M1.
 
 | Data group | Storage boundary governed by the privacy policy |
 | --- | --- |
 | Session identity and CSRF material | Access lifetime, revocation cleanup, and abandoned bootstrap-session cleanup. |
-| Conversation payload and normalized question | Visitor-history retention and deletion scope. |
+| Conversation payload and normalized question | Same expiry/revocation cleanup boundary as its owner. |
 | Attempts, calls, manifests, digests | Same sensitive conversation boundary unless a reviewed policy allows separate reduced metadata. |
-| Conversation tombstone | Prevent creation-key reuse for the remainder of a live session; then purge when policy permits. |
 | Quota subject digests | Only the enforcement window and necessary cleanup margin. |
 | Backups | Independent expiry and restore rules; live deletion does not automatically erase existing backups. |
 | Controlled evaluation artifacts | Preserve comparative evidence under an explicit artifact/access policy. |
 
-Logical deletion first marks a conversation unavailable under lock. For whole-session deletion, revoke the session before processing its conversations. Every finalization checks these markers, so an in-flight answer cannot recreate deleted history. A close-tab or New chat action does not set either marker.
+Access ends through the session expiry/revocation predicate before cleanup. Security revocation locks the session exclusively. Finalization and late usage updates cannot recreate removed rows. Closing a tab or selecting New chat does not revoke the session or remove saved messages.
 
-Use explicit, reviewed purge transactions rather than broad automatic cascades for session/conversation deletion. Release generation slots, remove provider calls and messages, remove attempts/turns with deferred cyclic references, and mark the retained conversation tombstone purged. Cross-row triggers must examine the final surviving state, not an intermediate delete order. Keep child-parent FKs and use deferred `NO ACTION` constraints where the turn/attempt cycle requires deletion together; do not disable integrity checks to purge.
+Use explicit reviewed purge transactions scoped to expired/revoked sessions. Release matching generation slots, remove provider calls/messages, remove attempts/turns with deferred cyclic references, then conversations and session material. Inspect the final surviving state in cross-row triggers; retain FKs and deferred `NO ACTION` where cyclic deletion requires it. Never disable constraints to purge.
 
-The purge procedure must not leave normalized questions, digests, usage settings, or rejected-output artifacts behind after claiming that conversation content is removed. If payload deletion is batched, keep the conversation unavailable throughout; set `purged_at` only after every required child group is gone. Audit the scope with IDs/counts, not copies of private text.
+If cleanup is batched, retain the inaccessible parent until all required children and associated artifacts are removed; repeat cleanup idempotently within the original cutoff window. No tombstone or second deletion state is needed. Verify normalized text, digests, manifests, usage settings, and artifacts are gone before claiming payload removal. Audit with safe IDs/counts, not private text. New sessions have a different ownership scope and cannot replay old operations.
 
-A deleted conversation's creation replay returns unavailable for its existing key. Once the session is invalid, old operation keys cannot be used under it; after policy-authorized session cleanup, its identity/tombstones can also be removed. New sessions have a different ownership scope.
-
-An authoritative restore must not silently restore access to revoked/deleted data. Define how post-backup revocations/deletions are reapplied before reopening traffic, or invalidate restored sessions and complete the deletion reconciliation first. Operators must report the backup recovery point rather than promising preservation of writes that were never in the backup.
+Restore with public access disabled. If post-backup revocations cannot be reconstructed, invalidate all restored sessions and purge retained visitor payload before reopening, as selected for M1. Do not build a separate deletion ledger. Record the recovery point and history-loss limitation; ordinary server restart still preserves live history. Operations owns exact commands and evidence.
 
 ## 11. Evaluation artifacts and Milestone 2
 
 ### Controlled evaluation storage
 
-Use the planned `evals/questions/` and `evals/runs/` paths for controlled test definitions and artifacts, following the future `evaluation.md`. These paths are not created by this document. Do not put real visitor transcripts into Git or label arbitrary visitor traffic as synthetic.
+Use the planned `evals/questions/` and `evals/runs/` paths under [evaluation.md](evaluation.md). These paths do not exist yet. Do not put real visitor transcripts into Git or label visitor traffic synthetic.
 
 Each run artifact needs an immutable run ID, exact question IDs/wording, repeat number, conversation conditions, application/prompt/schema/policy/model settings, request/turn/attempt references, complete accepted responses, known per-call usage, unknown outcomes, and review observations. Keep manual failure labels and counts in linked review records; a later review adds a revision rather than rewriting an earlier observation without history.
 
@@ -548,17 +541,17 @@ These are implementation acceptance checks to carry into `testing.md`, not resul
 | Replay | Matching operation IDs return the original receipt; changed payload/reference conflicts; no extra quota, question, or call is created. |
 | Retry history | Failure then retry then completion preserves both attempts, one user message, and one assistant message. |
 | Concurrent work | Competing submissions/retries cannot bypass one-running-turn, attempt-cap, quota, or slot constraints. |
-| Finalization race | Deadline reconciliation, deletion/revocation, and late completion cannot produce two terminal outcomes or release a newer slot. |
+| Finalization race | Deadline reconciliation, expiry/revocation, cleanup, and late completion cannot produce two terminal outcomes or release a newer slot. |
 | Read consistency | History and single-turn responses show one revision, ordered messages, and current eligibility without mixed snapshots. |
 | Response integrity | Database and runtime validators reject malformed content and non-null Milestone 1 sources; invalid candidates never become messages. |
 | Usage | Failed/rejected calls retain known usage; unknown calls remain unknown; late updates do not change turn outcome or resurrect deleted rows. |
-| Purge | Removing payload also removes normalized text/digests/metadata; retained tombstones block creation-key reuse under a live session. |
+| Purge | Remove payload, normalized text/digests/metadata, and session material within the cutoff window. Old invalid sessions cannot replay operation keys or recreate data. |
 | Migration/restore | Empty initialization, populated upgrade, rollback strategy, and isolated restore preserve constraints and disclose recovery limits. |
 
 One synthetic lifecycle illustrates the expected counts: initial acceptance gives revision `1`, one turn, one user message, and one running attempt; failure gives revision `2`; retry gives revision `3` and a second attempt without another question; completion gives revision `4` and exactly one assistant message. The first attempt remains failed. This is a design example, not a recorded evaluation.
 
 ### Open decisions and next document
 
-Review the proposed database/runtime stack, numerical limits, CSRF key construction, quota-window behavior, retention/deletion scope, and controlled evaluation-artifact storage. Resolve these with their owning documents before public release. Once code exists, link this document to the actual schema, repositories, validators, and migrations instead of maintaining a second untracked specification.
+The stack and initial limits/security/retention baseline are adopted. Pin compatible versions, prove the SQL/transaction invariants, and establish isolated data/artifact storage before the dependent phase. Link actual schemas, repositories, validators, and migrations here as they appear.
 
-Next document: `docs/design-guide.md`. Use the draft [safety/security policy](safety-and-security.md) for notices, refusal/error presentation, and the proposed deletion flow; keep its required API/UX amendment explicit before implementation.
+Follow the [implementation plan](phase-wise-implementation-plan.md) and existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance; existing design references guide UI work. Manual deletion and its receipt/tombstone machinery remain deferred.

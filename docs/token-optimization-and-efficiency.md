@@ -1,6 +1,6 @@
 # Gusto NutriBite: Token Optimization and Efficiency
 
-Status: Initial guidance. Usage limits, costs, and response-time targets are not set.
+Status: Initial measurement guidance. Architecture limits are adopted starting defaults; monetary budgets and measured response-time targets remain unset.
 
 Reduce model usage and repeated work without weakening answers, safety, or tests. Tokens are the units a model uses to measure input and output text.
 
@@ -57,8 +57,8 @@ Never hide failures, hardcode evaluation answers, or remove needed safety contex
 
 | Decision | Document |
 | --- | --- |
-| User-facing limits, cost budget, and response-time targets | Product spec |
-| History handling, model, output limit, timeout, retries, and caching | Architecture |
+| User-facing limits and remaining cost/performance decisions | Product spec and adopted architecture defaults; set actual budgets before paid use |
+| History, model compatibility, output/time/retry defaults, and caching | Architecture; preserve full bounded history and explicit-only retries |
 | Usage storage and access | Data model; safety and security |
 | Monitoring and reporting | Deployment and operations |
 

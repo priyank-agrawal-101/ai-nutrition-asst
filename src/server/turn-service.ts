@@ -31,7 +31,24 @@ import {
   type Phase,
   type ProviderResult,
 } from "./provider";
+import { inputRule, outputRule, policyVersion } from "./safety/rules";
+import {
+  selectTemplate,
+  templateVersion,
+  templateHash,
+} from "./safety/templates";
+import { promptVersion, promptHashes } from "./prompts/bundle";
+import { groqSettings } from "./llm/settings";
+import { checkModelCapacity, requestBudget } from "./llm/request";
+import { validators } from "./llm/schemas";
+import {
+  reserveProviderBudget,
+  observeProviderBudget,
+  checkProviderBudget,
+  recordProviderCooldown,
+} from "./llm/budget";
 import { retrieve } from "./retrieval";
+import { AttemptDiagnostics } from "./diagnostics";
 
 type Accepted = {
   turnId: string;
@@ -133,6 +150,8 @@ export class TurnService {
         observed.turn_count + 1,
         this.config.contextMaxTokens,
       );
+      if (this.config.providerMode === "groq")
+        checkModelCapacity(context.canonical);
       const accepted = await this.database.transaction("accept", async (db) => {
         await lockConversation(db, sessionId, conversationId);
         await this.reconcileLocked(db, conversationId);
@@ -151,6 +170,7 @@ export class TurnService {
         if (current.active_turn_id) throw new AppError("CONVERSATION_BUSY");
         if (!this.config.generationEnabled)
           throw new AppError("GENERATION_UNAVAILABLE");
+        await this.preflight(db, context.canonical, question, current);
         const turnId = randomUUID(),
           attemptId = randomUUID(),
           now = await databaseTime(db),
@@ -243,6 +263,8 @@ export class TurnService {
       turn.sequence,
       this.config.contextMaxTokens,
     );
+    if (this.config.providerMode === "groq")
+      checkModelCapacity(context.canonical);
     const accepted = await this.database.transaction("retry", async (db) => {
       await lockConversation(db, sessionId, conversationId);
       await this.reconcileLocked(db, conversationId);
@@ -271,6 +293,27 @@ export class TurnService {
         throw new AppError("STALE_ATTEMPT");
       if (!this.config.generationEnabled)
         throw new AppError("GENERATION_UNAVAILABLE");
+      if (t.failure?.retry_at) {
+        const wait = Math.ceil(
+          (Date.parse(t.failure.retry_at) -
+            (await databaseTime(db)).getTime()) /
+            1000,
+        );
+        if (wait > 0)
+          throw new AppError(
+            "PROVIDER_RATE_LIMITED",
+            "not_accepted",
+            "repeat_request",
+            wait,
+          );
+      }
+      await this.preflight(
+        db,
+        context.canonical,
+        normalize(t.user_message.text),
+        current,
+        t.sequence,
+      );
       const now = await databaseTime(db),
         deadline = new Date(
           now.getTime() + this.config.limits.attempt_timeout_seconds * 1000,
@@ -321,9 +364,10 @@ export class TurnService {
   ): Promise<void> {
     const manifest = {
       application: this.config.buildId,
-      prompts: { input_safety: null, answer: null, output_safety: null },
+      prompts: { version: promptVersion, hashes: promptHashes },
+      templates: { version: templateVersion, hash: templateHash },
       schema: "v1",
-      policy: "phase1-scripted-only",
+      policy: policyVersion,
       context_builder: "v1",
       normalization: "v1",
       limits: {
@@ -332,18 +376,44 @@ export class TurnService {
         phase_ms: { input_safety: 10000, answer: 25000, output_safety: 10000 },
         shared_ms: 45000,
         output_tokens: 2000,
-        verdict_tokens: 256,
+        verdict_tokens: groqSettings.outputTokens.input_safety,
       },
-      provider: {
-        name: "scripted",
-        model: "fixture-v1",
-        temperature: null,
-        seed: null,
-      },
+      provider:
+        this.config.providerMode === "groq"
+          ? groqSettings
+          : {
+              name: "scripted",
+              model: "fixture-v1",
+              temperature: null,
+              seed: null,
+            },
       usage: "v1",
     };
     await db.execute(
       sql`insert into attempts(id,turn_id,number,client_attempt_id,retries_attempt_id,status,started_at,deadline_at,context_revision,context_through_sequence,context_digest,milestone,run_manifest) values(${a.attemptId},${a.turnId},${a.number},${a.clientId},${a.failedId},'running',${a.now},${a.deadline},${a.revision},${a.sequence},${a.contextDigest},1,${JSON.stringify(manifest)}::jsonb)`,
+    );
+  }
+  private async preflight(
+    db: Db,
+    context: string,
+    question: string,
+    conversation: ConversationView,
+    sequence = conversation.turn_count + 1,
+  ): Promise<void> {
+    if (
+      this.config.providerMode !== "groq" ||
+      inputRule(
+        question,
+        conversation.turns
+          .filter((t) => t.sequence < sequence)
+          .map((t) => t.user_message.text),
+      )
+    )
+      return;
+    await checkProviderBudget(
+      db,
+      requestBudget("input_safety", context, null),
+      this.config.providerBudget,
     );
   }
   private async claimSlot(
@@ -385,10 +455,11 @@ export class TurnService {
     turnId: string,
     attemptId: string,
     code: FailureCode,
+    wait?: number,
   ): Promise<void> {
     const result = await rows(
       db,
-      sql`update attempts set status='failed',failure_code=${code},failure_message=${safeMessage(code)},finished_at=clock_timestamp() where id=${attemptId} and status='running' and exists(select 1 from turns where id=${turnId} and current_attempt_id=${attemptId} and status='running') returning id`,
+      sql`update attempts set status='failed',failure_code=${code},failure_message=${safeMessage(code)},retry_at=${code === "PROVIDER_RATE_LIMITED" ? sql`clock_timestamp()+make_interval(secs => ${wait ?? 60})` : sql`null`},finished_at=clock_timestamp() where id=${attemptId} and status='running' and exists(select 1 from turns where id=${turnId} and current_attempt_id=${attemptId} and status='running') returning id`,
       z.object({ id: z.string() }),
     );
     if (!result.length) return;
@@ -426,6 +497,7 @@ export class TurnService {
     a: Accepted,
   ): Promise<void> {
     const started = Date.now();
+    const diagnostics = new AttemptDiagnostics(this.config);
     try {
       const c = await this.read(sessionId, conversationId),
         t = c.turns.find((t) => t.id === a.turnId);
@@ -447,21 +519,59 @@ export class TurnService {
         rebuilt.canonical !== a.context
       )
         throw new AppError("ATTEMPT_FAILED");
-      const input = await this.call(
-        sessionId,
-        conversationId,
-        a,
-        "input_safety",
-        null,
-        started,
+      const codeReason = inputRule(
+        t.user_message.text,
+        c.turns
+          .filter((p) => p.sequence < t.sequence)
+          .map((p) => p.user_message.text),
       );
-      if (!inputVerdict.safeParse(input).success)
-        throw new AppError("SAFETY_CHECK_FAILED");
+      const input = codeReason
+        ? {
+            action:
+              selectTemplate(codeReason).kind === "refusal"
+                ? "refuse"
+                : "clarify",
+            reason: codeReason,
+          }
+        : await this.call(
+            sessionId,
+            conversationId,
+            a,
+            "input_safety",
+            null,
+            started,
+            diagnostics.observe,
+          );
+      const verdict = inputVerdict.safeParse(input);
+      if (!verdict.success) throw new AppError("SAFETY_CHECK_FAILED");
+      await this.database.db.execute(
+        sql`update attempts set input_reason=${verdict.data.reason},input_route=${codeReason ? "code" : "model"} where id=${a.attemptId} and status='running'`,
+      );
+      if (verdict.data.reason !== "general_education") {
+        const template = selectTemplate(verdict.data.reason);
+        await this.complete(
+          sessionId,
+          conversationId,
+          a,
+          template.content,
+          template.kind,
+        );
+        return;
+      }
       retrieve();
       const candidate = m1AnswerSchema.safeParse(
-        await this.call(sessionId, conversationId, a, "answer", null, started),
+        await this.call(
+          sessionId,
+          conversationId,
+          a,
+          "answer",
+          null,
+          started,
+          diagnostics.observe,
+        ),
       );
       if (!candidate.success) throw new AppError("OUTPUT_INVALID");
+      if (outputRule(candidate.data)) throw new AppError("OUTPUT_REJECTED");
       const review = outputVerdict.safeParse(
         await this.call(
           sessionId,
@@ -470,12 +580,18 @@ export class TurnService {
           "output_safety",
           JSON.stringify(candidate.data),
           started,
+          diagnostics.observe,
         ),
       );
       if (!review.success) throw new AppError("SAFETY_CHECK_FAILED");
-      if (review.data.verdict !== "accept")
-        throw new AppError("OUTPUT_REJECTED");
-      await this.complete(sessionId, conversationId, a, candidate.data);
+      if (review.data.action !== "allow") throw new AppError("OUTPUT_REJECTED");
+      await this.complete(
+        sessionId,
+        conversationId,
+        a,
+        candidate.data,
+        "answer",
+      );
     } catch (error) {
       if (
         error instanceof AppError &&
@@ -490,6 +606,8 @@ export class TurnService {
           const code: FailureCode =
             error instanceof AppError &&
             [
+              "PROVIDER_RATE_LIMITED",
+              "PROVIDER_CAPACITY_EXCEEDED",
               "OUTPUT_INVALID",
               "OUTPUT_REJECTED",
               "SAFETY_CHECK_FAILED",
@@ -499,6 +617,8 @@ export class TurnService {
             ].includes(error.code)
               ? z
                   .enum([
+                    "PROVIDER_RATE_LIMITED",
+                    "PROVIDER_CAPACITY_EXCEEDED",
                     "OUTPUT_INVALID",
                     "OUTPUT_REJECTED",
                     "SAFETY_CHECK_FAILED",
@@ -514,12 +634,21 @@ export class TurnService {
             a.turnId,
             a.attemptId,
             code,
+            error instanceof AppError ? error.wait : undefined,
           );
         });
       } catch (failure) {
         if (failure instanceof AppError) throw failure;
         throw new AppError("STORAGE_UNAVAILABLE", "unknown", "check_status");
       }
+    } finally {
+      await diagnostics.save(
+        this.database,
+        sessionId,
+        conversationId,
+        a.turnId,
+        a.attemptId,
+      );
     }
   }
   private async call(
@@ -529,16 +658,28 @@ export class TurnService {
     phase: Phase,
     candidate: string | null,
     started: number,
+    observe?: (phase: Phase, result: ProviderResult) => void,
   ): Promise<unknown> {
-    if (!this.config.generationEnabled)
-      throw new AppError("MODEL_SERVICE_FAILED");
+    const phaseFailure = () =>
+      new AppError(
+        new Date(a.deadline).getTime() <= Date.now()
+          ? "ATTEMPT_TIMEOUT"
+          : phase === "answer"
+            ? "MODEL_SERVICE_FAILED"
+            : "SAFETY_CHECK_FAILED",
+      );
+    if (!this.config.generationEnabled) throw phaseFailure();
     const remaining = Math.min(
       45000 - (Date.now() - started),
       new Date(a.deadline).getTime() - Date.now(),
       phase === "answer" ? 25000 : 10000,
     );
-    if (remaining <= 0) throw new AppError("ATTEMPT_TIMEOUT");
+    if (remaining <= 0) throw phaseFailure();
     const id = randomUUID();
+    const liveProvider = this.config.providerMode === "groq";
+    const reserved = liveProvider
+      ? requestBudget(phase, a.context, candidate)
+      : 0;
     await this.database.transaction("call_intent", async (db) => {
       await lockConversation(db, sessionId, conversationId);
       const [live] = await rows(
@@ -547,8 +688,28 @@ export class TurnService {
         z.object({ id: z.string() }),
       );
       if (!live) throw new AppError("ATTEMPT_TIMEOUT");
+      if (liveProvider) {
+        try {
+          await reserveProviderBudget(
+            db,
+            id,
+            reserved,
+            this.config.providerBudget,
+          );
+        } catch (error) {
+          if (
+            error instanceof AppError &&
+            ["PROVIDER_RATE_LIMITED", "PROVIDER_CAPACITY_EXCEEDED"].includes(
+              error.code,
+            )
+          )
+            throw error;
+          if (error instanceof AppError) throw phaseFailure();
+          throw error;
+        }
+      }
       await db.execute(
-        sql`insert into provider_calls(id,attempt_id,phase,call_number,provider,requested_model,request_settings,status) values(${id},${a.attemptId},${phase},1,'scripted','fixture-v1',${JSON.stringify({ timeout_ms: remaining, max_output_tokens: phase === "answer" ? 2000 : 256 })}::jsonb,'started')`,
+        sql`insert into provider_calls(id,attempt_id,phase,call_number,provider,requested_model,request_settings,status) values(${id},${a.attemptId},${phase},1,${liveProvider ? "groq" : "scripted"},${liveProvider ? groqSettings.model : "fixture-v1"},${JSON.stringify({ timeout_ms: remaining, max_completion_tokens: groqSettings.outputTokens[phase], reserved_tokens: reserved, temperature: liveProvider ? groqSettings.temperature : null, reasoning_effort: liveProvider ? groqSettings.reasoning_effort : null, include_reasoning: false, retries: 0 })}::jsonb,'started')`,
       );
     });
     const controller = new AbortController();
@@ -556,7 +717,7 @@ export class TurnService {
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
         controller.abort();
-        reject(new AppError("ATTEMPT_TIMEOUT"));
+        reject(phaseFailure());
       }, remaining);
     });
     let result: ProviderResult;
@@ -567,30 +728,69 @@ export class TurnService {
         timeout,
       ]);
     } catch (error) {
+      const rateLimited =
+        error instanceof AppError && error.code === "PROVIDER_RATE_LIMITED";
       await this.database.db.execute(
-        sql`update provider_calls set status='unknown',ended_at=clock_timestamp(),duration_ms=${Date.now() - callStart},error_code='PROVIDER_UNAVAILABLE' where id=${id} and status='started'`,
+        sql`update provider_calls set status='unknown',ended_at=clock_timestamp(),duration_ms=${Date.now() - callStart},error_code=${rateLimited ? "PROVIDER_RATE_LIMITED" : "PROVIDER_UNAVAILABLE"} where id=${id} and status='started'`,
       );
-      throw error instanceof AppError
-        ? error
-        : new AppError("MODEL_SERVICE_FAILED");
+      if (rateLimited) {
+        if (liveProvider)
+          await this.database.transaction("provider_cooldown", (db) =>
+            recordProviderCooldown(db, error.wait ?? 60),
+          );
+        throw error;
+      }
+      throw phaseFailure();
     } finally {
       if (timer) clearTimeout(timer);
     }
     let value: unknown;
+    observe?.(phase, result);
     let invalid = false;
     try {
       if (!result.complete) throw new Error("Incomplete output");
       value = parseRawJson(result.raw, 262144);
+      if (!validators[phase].safeParse(value).success)
+        throw new Error("Invalid phase schema");
     } catch {
       invalid = true;
     }
+    if (liveProvider)
+      await observeProviderBudget(
+        this.database.db,
+        id,
+        result.inputTokens,
+        result.outputTokens,
+      );
+    const verdictResult =
+      phase === "input_safety"
+        ? inputVerdict.safeParse(value)
+        : phase === "output_safety"
+          ? outputVerdict.safeParse(value)
+          : null;
+    const validationCode = invalid
+      ? "INVALID"
+      : verdictResult?.success
+        ? verdictResult.data.action + ":" + verdictResult.data.reason
+        : "SCHEMA_VALID";
     await this.database.db.execute(
-      sql`update provider_calls set status='succeeded',ended_at=clock_timestamp(),duration_ms=${Date.now() - callStart},finish_code=${result.complete ? "complete" : "incomplete"},validation_code=${invalid ? "INVALID" : "RAW_VALID"},input_tokens=${result.inputTokens},output_tokens=${result.outputTokens},usage_updated_at=clock_timestamp() where id=${id} and status='started'`,
+      sql`update provider_calls set status='succeeded',ended_at=clock_timestamp(),duration_ms=${Date.now() - callStart},finish_code=${result.finishCode ?? (result.complete ? "complete" : "incomplete")},validation_code=${validationCode},input_tokens=${result.inputTokens},output_tokens=${result.outputTokens},cached_input_tokens=${result.cachedInputTokens ?? null},reasoning_tokens=${result.reasoningTokens ?? null},reported_model=${result.reportedModel ?? null},provider_request_id=${result.requestId ?? null},usage_updated_at=clock_timestamp() where id=${id} and status='started'`,
     );
     if (invalid)
       throw new AppError(
-        phase === "answer" ? "OUTPUT_INVALID" : "SAFETY_CHECK_FAILED",
+        phase === "answer"
+          ? result.finishCode === "refusal"
+            ? "MODEL_SERVICE_FAILED"
+            : "OUTPUT_INVALID"
+          : "SAFETY_CHECK_FAILED",
       );
+    if (
+      liveProvider &&
+      (result.reportedModel !== groqSettings.model ||
+        (result.inputTokens !== null &&
+          result.inputTokens + groqSettings.outputTokens[phase] > reserved))
+    )
+      throw phaseFailure();
     return value;
   }
   private async complete(
@@ -598,6 +798,7 @@ export class TurnService {
     conversationId: string,
     a: Accepted,
     content: AnswerContent,
+    kind: "answer" | "refusal" | "clarification",
   ): Promise<void> {
     m1AnswerSchema.parse(content);
     await this.database.transaction("complete", async (db) => {
@@ -611,7 +812,7 @@ export class TurnService {
       );
       if (!won) return;
       await db.execute(
-        sql`insert into messages(id,turn_id,role,attempt_id,content,response_kind,content_schema_version,created_at) values(${randomUUID()},${a.turnId},'assistant',${a.attemptId},${JSON.stringify(content)}::jsonb,'answer','v1',${new Date(won.finished_at)})`,
+        sql`insert into messages(id,turn_id,role,attempt_id,content,response_kind,content_schema_version,created_at) values(${randomUUID()},${a.turnId},'assistant',${a.attemptId},${JSON.stringify(content)}::jsonb,${kind},'v1',${new Date(won.finished_at)})`,
       );
       await db.execute(
         sql`update turns set status='completed',updated_at=clock_timestamp() where id=${a.turnId}`,

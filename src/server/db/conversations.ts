@@ -5,10 +5,11 @@ import {
   conversationSchema,
   type ConversationView,
   LIMITS,
+  failureCodes,
 } from "@/contracts/api";
 import { type Db, rows, dateValue, intValue } from "./connection";
 import { lockSession } from "../security";
-import { AppError } from "../errors";
+import { AppError, safeMessage } from "../errors";
 export async function lockConversation(
   db: Db,
   sessionId: string,
@@ -37,7 +38,7 @@ export async function snapshot(
   if (!c) throw new AppError("CONVERSATION_UNAVAILABLE");
   const result = await rows(
     db,
-    sql`select t.id,t.client_submission_id,t.sequence,t.status,a.id as attempt_id,a.number,a.client_attempt_id,a.started_at,a.deadline_at,a.finished_at,a.failure_code,a.failure_message,u.id as user_id,u.user_text,u.created_at as user_created_at,m.id as assistant_id,m.content,m.response_kind,m.created_at as assistant_created_at from turns t join attempts a on a.id=t.current_attempt_id join messages u on u.turn_id=t.id and u.role='user' left join messages m on m.turn_id=t.id and m.role='assistant' where t.conversation_id=${conversationId} order by t.sequence`,
+    sql`select t.id,t.client_submission_id,t.sequence,t.status,a.id as attempt_id,a.number,a.client_attempt_id,a.started_at,a.deadline_at,a.finished_at,a.failure_code,a.failure_message,a.retry_at,u.id as user_id,u.user_text,u.created_at as user_created_at,m.id as assistant_id,m.content,m.response_kind,m.created_at as assistant_created_at from turns t join attempts a on a.id=t.current_attempt_id join messages u on u.turn_id=t.id and u.role='user' left join messages m on m.turn_id=t.id and m.role='assistant' where t.conversation_id=${conversationId} order by t.sequence`,
     z.object({
       id: z.string(),
       client_submission_id: z.string(),
@@ -51,6 +52,7 @@ export async function snapshot(
       finished_at: dateValue.nullable(),
       failure_code: z.string().nullable(),
       failure_message: z.string().nullable(),
+      retry_at: dateValue.nullable(),
       user_id: z.string(),
       user_text: z.string(),
       user_created_at: dateValue,
@@ -103,7 +105,11 @@ export async function snapshot(
         finished_at: t.finished_at,
       },
       failure: t.failure_code
-        ? { code: t.failure_code, message: t.failure_message }
+        ? {
+            code: t.failure_code,
+            message: safeMessage(z.enum(failureCodes).parse(t.failure_code)),
+            retry_at: t.retry_at,
+          }
         : null,
       retry: {
         allowed: reason === null,

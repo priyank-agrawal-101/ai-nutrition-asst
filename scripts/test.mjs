@@ -97,6 +97,8 @@ try {
     NODE_ENV: "production",
     APP_ORIGIN: origin,
     PROVIDER_MODE: "scripted",
+    GROQ_API_KEY: "",
+    __NEXT_PROCESSED_ENV: "true",
     DATABASE_URL: runtimeUrl,
     TEST_DATABASE_URL: runtimeUrl,
     TEST_MIGRATION_DATABASE_URL: migrationUrl,

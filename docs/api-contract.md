@@ -10,7 +10,7 @@ This document defines the HTTP contract between chat and backend: paths, payload
 
 Use this document as the home for public field names and wire behavior. Database tables are defined in the draft [data model](data-model.md); policy and privacy rules belong in `safety-and-security.md`; prompts belong in `prompt-spec.md`. Once code exists, link the runtime schemas here and check that they match this contract.
 
-Executable owners: [strict public schemas](../src/contracts/api.ts), [bounded raw JSON reader](../src/server/validation/json.ts), [HTTP adapter](../src/server/http.ts), and [Next.js route](../src/app/api/v1/[[...path]]/route.ts). Phase 1 preserves the public citation union and enforces null sources at acceptance/storage. Its internal scripted phase verdicts are test fixtures, not the real classifier/review schemas or evaluated policies specified for Phase 2. The local network quota subject is one loopback group; forwarded headers are ignored. Public network identity and secure-cookie deployment must be implemented/verified before production is enabled.
+Executable owners: [strict public schemas](../src/contracts/api.ts), [bounded raw JSON reader](../src/server/validation/json.ts), [HTTP adapter](../src/server/http.ts), and [Next.js route](../src/app/api/v1/[[...path]]/route.ts). Phase 1 preserves the public citation union and enforces null sources at acceptance/storage. Phase 2 adds strict classifier/reviewer schemas and code policy gates; scripted outcomes remain software fixtures, not model evaluation. The local network quota subject is one loopback group; forwarded headers are ignored. Public network identity and secure-cookie deployment must be implemented/verified before production is enabled.
 
 Milestone 1 answers without retrieval. Milestone 2 uses the same API version, endpoints, interface, and response shapes; it fills the citation fields defined here. There is no public provider, prompt-editing, evaluation, or retrieval endpoint.
 
@@ -109,6 +109,9 @@ type SessionView = {
   expires_at: Timestamp;
   csrf_token: string;
   limits: ClientLimits;
+  provider_mode: "scripted" | "groq";
+  generation_enabled: boolean;
+  diagnostics_enabled: boolean;
 };
 ```
 
@@ -194,6 +197,7 @@ type AttemptView = {
 type AttemptFailure = {
   code: AttemptFailureCode;
   message: string;
+  retry_at: Timestamp | null;
 };
 
 type RetryEligibility = {
@@ -243,6 +247,8 @@ type SubmissionLookup = {
 ```
 
 `AttemptFailureCode` is defined in Section 8. Its safe message is 1–300 code points. Attempt numbers and turn sequences start at `1`. The first attempt has `client_attempt_id: null`; retries carry the supplied client attempt ID. A turn keeps its user-message ID and sequence across retries.
+
+`SessionView.diagnostics_enabled` reports the local operator's temporary capture switch for the privacy notice. No public endpoint enables, reads or deletes diagnostic content. Normal conversation/turn responses remain unchanged and never include a rejected candidate.
 
 Messages are nested in ordered turns to avoid returning two competing copies of the transcript. Render each turn's user message, then its assistant message if present. Failed/running turns have one visible question and a status, not an invented assistant message.
 
@@ -447,6 +453,8 @@ When a wait duration is known, return a positive integer `retry_after_seconds` a
 | `415` | `UNSUPPORTED_MEDIA_TYPE` | Request content type or content encoding is unsupported. Fix the request. |
 | `422` | `VALIDATION_FAILED` | Body fields are missing/extra, wrong type, or out of bounds. Show field errors and keep the question editable. |
 | `429` | `RATE_LIMITED` | Request or new-attempt quota exceeded. Respect a supplied wait; repeat the same operation only on user action. |
+| `429` | `PROVIDER_RATE_LIMITED` | Known local account quota or provider cooldown blocks acceptance. No new turn/attempt is created; keep the draft and repeat the same operation after `Retry-After`, only on user action. |
+| `503` | `PROVIDER_CAPACITY_EXCEEDED` | The request cannot fit the configured token ceiling even after waiting. Shorten the question, start a new chat, or ask the operator to review configuration. |
 | `503` | `GENERATION_UNAVAILABLE` | Generation disabled or shared capacity unavailable before accepting new work. History/status remain readable. |
 | `503` | `STORAGE_UNAVAILABLE` | Database read/write or commit status unavailable. Preserve visible content and follow the outcome rules below. |
 | `503` | `SERVICE_NOT_READY` | Readiness check failed. Return only a safe message. |
@@ -462,6 +470,8 @@ If a conversation-creation commit is uncertain, use `unknown` and `repeat_reques
 
 | HTTP from submit/retry | Code | Stored failure condition |
 | --- | --- | --- |
+| `429` | `PROVIDER_RATE_LIMITED` | A phase hits a local reservation limit or Groq HTTP 429 after acceptance. Store a retry time, hide any candidate and return matching `Retry-After`. |
+| `503` | `PROVIDER_CAPACITY_EXCEEDED` | A later phase cannot fit the configured token ceiling; waiting alone cannot fix it. |
 | `502` | `MODEL_SERVICE_FAILED` | Provider error or provider refusal outside the reviewed app response mapping. |
 | `502` | `OUTPUT_INVALID` | Missing, malformed, truncated, oversized, wrong-type, or non-null-source Milestone 1 content. |
 | `502` | `OUTPUT_REJECTED` | Candidate failed the app's output safety checks. Candidate stays hidden. |
@@ -474,7 +484,9 @@ Use these execution errors with `operation_state: "accepted"` and `recovery.acti
 
 If a handler loses its completion fence to a newer attempt or discovers a completed turn during reconciliation, return the authoritative current turn snapshot rather than overwriting its outcome with an old failure. This recovery response uses `200 Success<OperationResult>`; the operation receipt still identifies the attempt handled by that request.
 
-Stored failure messages follow the [UX-08](ux-flow.md#ux-08-recover-from-an-error) pattern. Provider and output failures may share "Couldn't complete the answer. Try again." Storage failures should explain that the exchange could not be saved. The client shows Retry only when the current `retry.allowed` is true, regardless of suggested copy.
+Failure messages follow [UX-08](ux-flow.md#ux-08-recover-from-an-error) and the safe mappings in [errors.ts](../src/server/errors.ts). Distinguish quota, provider failure, unusable safety check and rejected output. Existing historical failure codes are preserved; reads use the current safe message for that code. The client shows Retry only when `retry.allowed` is true and disables generation while a known cooldown remains.
+
+`failure.retry_at` is non-null exactly for `PROVIDER_RATE_LIMITED`. It is a stored UTC timestamp, so a history read/refresh retains the wait. Structural retry eligibility is unchanged by time; the backend rechecks cooldown and account usage before accepting a retry, without consuming an attempt when blocked. Known usage checks before acceptance cover the first model phase; each later phase still reserves separately. Another request or a larger candidate may exhaust capacity after acceptance. Retry times describe observed capacity, not a guaranteed reservation. No request is automatically queued or regenerated.
 
 ## 9. Client recovery sequence
 
@@ -678,3 +690,7 @@ Rate limits, retention, operator access, user notice, and CSRF are owned by safe
 | Evaluation | Fresh repetitions generate new samples; HTTP replays do not; keep earlier failed attempts and available usage for review. | EVAL-02, EVAL-05–EVAL-06 |
 
 The [data model](data-model.md) defines storage and [safety/security](safety-and-security.md) defines policy/controls. Follow the approved [implementation plan](phase-wise-implementation-plan.md) with the existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance. Use the existing design reference/preview during UI work; a manual-deletion amendment does not block M1.
+
+## Phase 2 session capability fields
+
+Both GET and POST session responses now include required `provider_mode: "scripted" | "groq"` and `generation_enabled: boolean` alongside the existing expiry, CSRF token and limits. These are server-selected display capabilities, not client-selectable settings. They keep the test-mode label/data notice truthful and expose generation shutdown without exposing model credentials, prompts or internal reasons. The [runtime schema](../src/contracts/api.ts) is authoritative. Status/history reads remain available when generation is paused.

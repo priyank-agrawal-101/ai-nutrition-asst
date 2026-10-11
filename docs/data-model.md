@@ -508,6 +508,8 @@ The evaluation runner uses ordinary API behavior in a dedicated evaluation datab
 
 Invalid provider candidates are not normal messages. If evaluating them requires raw capture, design a separate restricted artifact store with explicit retention and access rules first. Preserve the observed failure code even when raw capture is disabled. Do not manufacture a valid-looking answer or an empty "successful" response for an invalid result.
 
+The owner-authorized local diagnostic exception is now implemented as described below. It does not make diagnostic content a chat message or evaluation score.
+
 ### Retrieval extension
 
 Milestone 1 stores the already defined nullable citation shape inside message JSON and enforces null sources. Milestone 2 can add internal evidence records while leaving the API unchanged.
@@ -559,3 +561,27 @@ One synthetic lifecycle illustrates the expected counts: initial acceptance give
 The stack and initial limits/security/retention baseline are adopted. Pin compatible versions, prove the SQL/transaction invariants, and establish isolated data/artifact storage before the dependent phase. Link actual schemas, repositories, validators, and migrations here as they appear.
 
 Follow the [implementation plan](phase-wise-implementation-plan.md) and existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance; existing design references guide UI work. Manual deletion and its receipt/tombstone machinery remain deferred.
+
+## Phase 2 persistence additions
+
+[Migration 0002](../migrations/0002_provider_budget.sql) adds a small account-budget ledger with a random call ID, timestamp, reserved tokens and nullable observed tokens. It has no session FK, transcript or key; it survives visitor cleanup so expiry/revocation cannot release account quota early. Rolling windows expire after 24 hours; startup/five-minute maintenance removes old entries. This is operational quota data, not a second transcript or deletion ledger.
+
+Attempts additionally record an allowlisted input reason and code/model route, once, while running. The new guard preserves immutable attempts and forbids changing a recorded decision or terminal attempt. Provider calls record validated verdict action/reason, reported model, completion ID, finish status, all observed usage and overlapping cache/reasoning subsets. Missing usage remains null; no cost is invented. The run manifest records prompt/template hashes and effective provider limits.
+
+### Rate-limit reporting upgrade
+
+[0003_provider_cooldown.sql](../migrations/0003_provider_cooldown.sql) adds the two provider-capacity failure codes and `attempts.retry_at`. A constraint requires a retry timestamp exactly for `PROVIDER_RATE_LIMITED`; the v3 immutable-attempt guard allows it only as part of the running-to-failed transition. Prior migrations and terminal records remain unchanged.
+
+`provider_cooldown` has one row (`id=1`, `retry_at`) for the configured Groq account's observed upstream cooldown. It contains no credentials, visitor identifiers or content. Extending it uses the account advisory lock; expiration is evaluated against the database clock and an expired row has no effect. It survives service restarts and protects other conversations sharing this database. It is not a record of account use by other applications. A Groq 429 keeps unknown usage reserved conservatively and records `provider_calls.error_code=PROVIDER_RATE_LIMITED`.
+
+### Temporary local model diagnostics
+
+[0004_model_diagnostics.sql](../migrations/0004_model_diagnostics.sql) creates `model_diagnostics`: `attempt_id` is its primary key and foreign key, with `captured_at`, `expires_at`, safe `reason` and bounded JSONB `payload`. Payload entries are `input_safety`, `answer` and `output_safety` when those phases returned content; each has `text`, `complete`, `truncated` and `redacted`. The attempt's existing manifest owns prompt hashes and model/settings; questions remain in their existing message rows rather than being copied.
+
+Capture is local-only, explicitly enabled for at most 24 hours, and per execution. It records failed attempts or model-driven input refusals/clarifications after terminal storage, never successful answers, code-only templates or a replay. It uses the same ownership lock and live-session checks before insertion; diagnostic errors cannot change the saved result. Captured text never enters public snapshots or context reconstruction.
+
+Answer content is limited to 65,536 input bytes and each verdict to 4,096, decoded as UTF-8 with flags for truncation and replacement/redaction. Known configuration credentials and recognizable key patterns are redacted; NUL is replaced for PostgreSQL compatibility. This is private model message content, not byte-exact provider transport evidence. No separate reasoning field, HTTP error body, full prompt or context is captured. Content can still contain sensitive visitor text and is restricted to the local project owner.
+
+Expiry is the earlier of capture plus 24 hours and session expiry. Maintenance removes expired captures and removes all associated captures before purging a session; a new capture also purges expired rows. At most the newest 100 records are retained, serialized by a separate advisory lock. `diagnostics:purge` removes only this table's contents; normal chat deletion remains deferred. See [operations](deployment-and-operations.md#temporary-local-diagnostics) for enablement, access and cleanup timing.
+
+Migrations now run in manifest order and readiness requires every matching checksum. The original 0001 bytes are unchanged. This is an additive upgrade; it never resets local conversations.

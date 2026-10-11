@@ -38,7 +38,7 @@ export class ScriptedProvider implements Provider {
 }
 export const allow = () => ({
   phase: "input_safety" as const,
-  result: fixtureResult({ verdict: "allow", reason: "scripted_fixture" }),
+  result: fixtureResult({ action: "allow", reason: "general_education" }),
 });
 export const answer = () => ({
   phase: "answer" as const,
@@ -49,7 +49,7 @@ export const answer = () => ({
 });
 export const review = () => ({
   phase: "output_safety" as const,
-  result: fixtureResult({ verdict: "accept" }),
+  result: fixtureResult({ action: "allow", reason: "within_scope" }),
 });
 export function gate<T>() {
   let resolve!: (value: T) => void;

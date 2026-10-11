@@ -45,6 +45,8 @@ POL-01 and POL-02 apply to generic or hypothetical target requests as well as pe
 
 For POL-05, a general adult nutrient question may receive an educational explanation or appropriate population-level information. Do not turn supplied body weight, symptoms, pregnancy status, disease, medication, or lab values into a personalized prescription. If the user requests that personalization, follow POL-03; if intent is genuinely unclear, clarify without asking for those details.
 
+Calibration clarification, 11 October 2026: ordinary first-person wording and vegetarian food preferences alone do not request a clinical prescription. General adult nutrient amounts/ranges, including grams per kilogram as a population reference, remain permitted; calculating a personal prescription from supplied body measurements remains excluded. Do not invent a medical condition or require personal details before answering an otherwise clear educational question. The input classifier, generator and reviewer must use this same distinction. These clarifications narrow unnecessary rejection under POL-05; POL-01–POL-04 and the adopted mixed-request policy remain in force.
+
 ### Adopted additional policies
 
 | ID | Rule | Required M1 behavior |
@@ -184,7 +186,7 @@ The absolute access lifetime remains seven days. Shared browsers share the same 
 
 ### CSRF construction and rotation
 
-Phase 1 implementation: [security](../src/server/security.ts), [configuration](../src/server/config.ts), and [quotas](../src/server/quotas.ts). Local/test profile enforcement, session/Origin/CSRF, ownership, quotas and cleanup have [software evidence](testing.md#phase-1-implementation-evidence). Production is disabled. Full nutrition safety classification/templates/output review remain Phase 2; scripted verdicts are not evidence of language recognition or factual safety.
+Phase 1 implementation: [security](../src/server/security.ts), [configuration](../src/server/config.ts), and [quotas](../src/server/quotas.ts). Local/test profile enforcement, session/Origin/CSRF, ownership, quotas and cleanup have [software evidence](testing.md#phase-1-implementation-evidence). Production is disabled. Phase 2 implements [code rules](../src/server/safety/rules.ts), [strict verdicts](../src/server/safety/verdicts.ts), [templates](../src/server/safety/templates.ts) and separate Groq review. Scripted verdicts are not evidence of language recognition or factual safety.
 
 Use an independent random server key of at least 32 bytes for HMAC-SHA-256. Store only its key-version identifier and the 32-byte random session nonce in the session row. The canonical message is:
 
@@ -241,6 +243,8 @@ The following durations are adopted initial product/operations limits, not claim
 For this table, **access cutoff** is the earlier of expiry or security revocation. The cleanup clock does not restart on a failed job, read, or new chat. Monitor missed deadlines as incidents. M1 does not delete individual conversations under a live session, so no live-session creation-key tombstones or user-deletion receipts are needed.
 
 No arbitrary permanent incident archive is enabled for visitor messages. Preserve safe event metadata and a synthetic reproduction where possible. Any exceptional retention of real content needs a separately documented purpose, restricted access, deletion date, and appropriate authorization; it is not a default implementation shortcut.
+
+**Owner-authorized local diagnostic exception, 11 October 2026:** the owner requested temporary capture of received answers rejected by the checks, to diagnose unnecessary refusals and output rejection. The local operator may enable capture for 24 hours; only that project owner should inspect `model_diagnostics` through the local database connection. It captures returned model message content for failed attempts and model input boundaries, with no public read endpoint or inclusion in chat/context/logs. Each row expires within 24 hours or at earlier session expiry, and the store holds at most 100 rows. Cleanup runs at startup and every five minutes while the app is running; a stopped app resumes cleanup on startup. A manual diagnostics-only purge is available. Known secrets are redacted, but the content remains private and must not be copied into Git, screenshots, shared test artifacts or external services. The UI shows when capture is enabled. This exception is not enabled in normal test configuration or approved for public deployment; synthetic fixtures remain the basis of automated verification.
 
 ### Manual deletion (deferred)
 
@@ -362,4 +366,10 @@ Do not equate a green build, provider moderation, a valid JSON response, or a fi
 | Abuse and spending | Review fixed-window thresholds against expected traffic and shared networks; select a real operating budget before public calls. |
 | Release ownership | Name the maintainer/privacy contact and record the review outcome before public use. |
 
-Follow the [implementation plan](phase-wise-implementation-plan.md) and existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance. Use the existing [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html) for UI presentation; verify notices, mobile, accessibility, and refusal/error states during implementation, with no manual-deletion control. Exact assistant wording stays in [prompt-spec.md](prompt-spec.md).
+Follow the [implementation plan](phase-wise-implementation-plan.md) and existing [agent](../AGENTS.md)/[operations](deployment-and-operations.md) guidance. Use the owner-authorized [UX visual direction](ux-flow.md#visual-direction-and-information-hierarchy) for presentation; verify compact notices, mobile, accessibility, and refusal/error states during implementation, with no manual-deletion control. Detailed retention and diagnostic notices are available through **About this chat**, with storage/provider and enabled-diagnostic summaries near the composer. Exact assistant wording stays in [prompt-spec.md](prompt-spec.md).
+
+## Groq local-operation boundary
+
+The adapter sends only the complete bounded active conversation, stable instructions, schema, and (for review) the candidate. It requests no tools, retrieval or returned reasoning. Groq's [data policy](https://console.groq.com/docs/your-data), read on 11 October 2026, says inference content is not retained by default but may be logged for reliability/abuse monitoring for up to 30 days, subject to legal exceptions; account-level Zero Data Retention is available. This account's setting has not been independently verified. The local notice states that limitation and does not promise zero provider retention.
+
+The operator can pause new dispatch immediately with the local generation control. Each later phase rechecks the switch. A call already sent to Groq may continue remotely; interruption is not proof of zero cost. No candidate may bypass required review or the normal commit fence. Public operation remains disabled pending Phase 3/4 release and privacy controls.

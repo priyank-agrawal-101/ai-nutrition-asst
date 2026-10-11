@@ -150,15 +150,15 @@ export function createHandler(
       if (endpoint === "health/ready") {
         try {
           const result = await database.db.execute(
-            sql`select checksum from schema_migrations where version='0001_foundation'`,
+            sql`select version,checksum from schema_migrations order by version`,
           );
           if (
             !z
-              .array(
-                z.object({ checksum: z.literal(migrationManifest.checksum) }),
-              )
-              .length(1)
-              .safeParse(result.rows).success
+              .array(z.object({ version: z.string(), checksum: z.string() }))
+              .length(migrationManifest.migrations.length)
+              .safeParse(result.rows).success ||
+            JSON.stringify(result.rows) !==
+              JSON.stringify(migrationManifest.migrations)
           )
             throw new Error("Schema mismatch");
           const role = await database.db.execute(
@@ -229,6 +229,9 @@ export function createHandler(
             expires_at: session.expires_at,
             csrf_token: csrf(session, config),
             limits: config.limits,
+            provider_mode: config.providerMode,
+            diagnostics_enabled: config.diagnosticsEnabled,
+            generation_enabled: config.generationEnabled,
           },
           established.token ? 201 : 200,
         );
@@ -242,6 +245,9 @@ export function createHandler(
             expires_at: session.expires_at,
             csrf_token: csrf(session, config),
             limits: config.limits,
+            provider_mode: config.providerMode,
+            diagnostics_enabled: config.diagnosticsEnabled,
+            generation_enabled: config.generationEnabled,
           });
         else if (endpoint === "create") {
           mutation = true;
@@ -298,6 +304,16 @@ export function createHandler(
                 result.turn.failure.code,
                 "accepted",
                 "check_status",
+                result.turn.failure.retry_at
+                  ? Math.max(
+                      1,
+                      Math.ceil(
+                        (Date.parse(result.turn.failure.retry_at) -
+                          Date.now()) /
+                          1000,
+                      ),
+                    )
+                  : undefined,
               );
             headers.set(
               "Location",

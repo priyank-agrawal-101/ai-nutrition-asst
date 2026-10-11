@@ -7,6 +7,11 @@ export type ProviderResult = {
   complete: boolean;
   inputTokens: number | null;
   outputTokens: number | null;
+  cachedInputTokens?: number | null;
+  reasoningTokens?: number | null;
+  reportedModel?: string | null;
+  requestId?: string | null;
+  finishCode?: string | null;
 };
 export interface Provider {
   call(
@@ -16,13 +21,7 @@ export interface Provider {
     signal: AbortSignal,
   ): Promise<ProviderResult>;
 }
-export const inputVerdict = z.strictObject({
-  verdict: z.literal("allow"),
-  reason: z.literal("scripted_fixture"),
-});
-export const outputVerdict = z.strictObject({
-  verdict: z.enum(["accept", "reject"]),
-});
+export { inputVerdict, outputVerdict } from "./safety/verdicts";
 export function fixtureResult(value: unknown): ProviderResult {
   return {
     raw: Buffer.from(JSON.stringify(value)),
@@ -43,12 +42,12 @@ export class LocalScriptedProvider implements Provider {
     return Promise.resolve(
       fixtureResult(
         phase === "input_safety"
-          ? { verdict: "allow", reason: "scripted_fixture" }
+          ? { action: "allow", reason: "general_education" }
           : phase === "output_safety"
-            ? { verdict: "accept" }
+            ? { action: "allow", reason: "within_scope" }
             : {
                 answer:
-                  "This is a scripted local test response. Your question was saved. Nutrition answers and model safety review arrive in Phase 2.",
+                  "This is a scripted local test response. Your question was saved. Enable the Groq configuration for AI answers.",
                 claims: [],
               },
       ),

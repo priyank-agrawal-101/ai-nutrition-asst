@@ -1,3 +1,20 @@
 {
-  "checksum": "cf599134d156ad2b47322bf133dce0c3aa133d1d7011634c8ed9101c9e795165"
+  "migrations": [
+    {
+      "version": "0001_foundation",
+      "checksum": "cf599134d156ad2b47322bf133dce0c3aa133d1d7011634c8ed9101c9e795165"
+    },
+    {
+      "version": "0002_provider_budget",
+      "checksum": "489e8432d321979c62b092ce917aa256a119d916a798140a0ef2b382b0367b61"
+    },
+    {
+      "version": "0003_provider_cooldown",
+      "checksum": "b6f7a532a85ef8435513a62e05ddb22c95c4b8f8e4890379e6af26636bc3e98e"
+    },
+    {
+      "version": "0004_model_diagnostics",
+      "checksum": "56f22ef7585dc7793b118918af1b2fe58b733f9769811bf0a6b24cec97a6497c"
+    }
+  ]
 }

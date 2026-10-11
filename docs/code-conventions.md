@@ -110,7 +110,7 @@ Centralise API calls in the client boundary. Parse responses against the public 
 
 Effects must have cleanup and stable dependencies. Mounting/restoring a view may start the contract's reads, but must not create a generation mutation as a side effect of rendering. Avoid optimistic insertion of model text; pending UI state is different from a committed assistant message. Do not introduce a query/state-management dependency until the existing flow demonstrates a need.
 
-Use semantic HTML, actual form/button behavior, and CSS Modules. Derive visual tokens from the existing Wise reference/preview and chat-specific choices recorded during UI implementation; do not create an independent palette or component framework here. Testing owns locators/accessibility verification; UX/brand/prompts own wording.
+Use semantic HTML, actual form/button behavior, and CSS Modules. Follow the owner-authorized [visual direction](ux-flow.md#visual-direction-and-information-hierarchy) and shared application tokens; the Wise reference is preserved historical material. Avoid a separate component framework. Testing owns locators/accessibility verification; UX/brand/prompts own wording.
 
 ## 8. Dependencies, changes, and handoff
 
@@ -123,3 +123,11 @@ Make a change reviewable around one behaviour or resolved ambiguity. Include its
 When code becomes the executable source for schemas, prompts, or settings, link it from the owner document and remove manually maintained duplicate code snippets where they would drift. Keep rationale and change history in the owner. A missing instruction should be resolved there, not copied into another checklist or a large generated agent guide.
 
 Use [the README's next build decisions](../README.md#next-build-decisions) to resolve the remaining cross-document gaps. These conventions and the testing baseline are sufficient to start a controlled scaffold once that foundation is settled; additional documents are not a goal in themselves.
+
+## Phase 2 provider conventions
+
+The Groq adapter uses built-in fetch, a fixed HTTPS endpoint, explicit cancellation, redirect rejection, bounded raw response reads and no SDK/HTTP regeneration retries. Keep phase schemas/runtime pair checks in the same modules. The nullable public citation union remains separate from the provider's M1 null-only schema.
+
+Prompt text is in server-only phase modules; the bundle hashes assembled bytes, and the template catalogue is the single literal source. Provider identifiers, finish codes and usage are validated/allowlisted before persistence. Never log the raw provider response or exception. js-tiktoken 1.0.21 supplies o200k merge counting plus an explicit conservative framing reserve; it never fetches model data at runtime.
+
+Migration 0002 is additive. Do not alter 0001 or reset runtime data. Readiness verifies the ordered checksum manifest. Live smoke runs are separate from scripted CI and retain their own private manifests/outcomes.

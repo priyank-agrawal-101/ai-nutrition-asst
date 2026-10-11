@@ -63,3 +63,13 @@ Never hide failures, hardcode evaluation answers, or remove needed safety contex
 | Monitoring and reporting | Deployment and operations |
 
 See the [document index](../README.md#document-index) for file locations. Store implemented settings in code and link to them here.
+
+## 11 October 2026: Groq account budget
+
+Pin GPT-OSS 120B for classification, generation and review rather than introduce three models without comparative evidence. The [settings](../src/server/llm/settings.ts) use 256 completion tokens for each verdict and 2,000 for the answer, including reasoning, with unchanged 10/25/10-second phases and 45/60-second shared/attempt deadlines. These limits are measured in targeted probes; they are not latency promises or quality evaluation.
+
+The first live-check allocation is at most 20 calls and 40,000 total tokens, inside the owner's 30 RPM / 1,000 RPD / 8,000 TPM / 200,000 TPD account limits. All calls, including failed phases and compatibility probes, use a persistent reservation ledger. The runner paces independent groups; the product fails safely instead of waiting past its deadline. Full-history follow-ups can exhaust the small minute budget. Unknown usage consumes its reserved upper bound until expiry. Cache and reasoning are subsets, never added to total usage. No prompt-cache savings or cost reduction is claimed.
+
+The initial compatibility configuration temporarily reserved 512 verdict tokens plus 512 framing tokens. It completed an initial answer but unnecessarily blocked the first follow-up before review. The three adapter samples reported 71–84 fewer input tokens than the entire serialized-request token count. The adopted setting returns verdicts to the planned 256 tokens and adds 128 framing tokens, retaining strict validation, all policy text, separate review and the account cap. See the preserved failure and rerun in [testing](testing.md#phase-2-implementation-evidence). This is a reservation adjustment, not a prompt-quality or cost-savings claim.
+
+The [v2 classifier regression](evaluation.md#classifier-v2-regression) shortened repeated prompt wording while clarifying the educational boundary. In its four paired classifier-only probes, provider-reported input usage was exactly **564 tokens lower per v2 call** (v1: 1,741–1,790; v2: 1,177–1,226), with identical context and schemas within each pair. Output usage varied. This is observed input-token reduction for those probes, not a measured accuracy improvement, universal total-cost reduction or cache saving. Both versions selected the expected routes in all four pairs. Full-history answers still use three calls and remain subject to the same per-phase reservations and account limits.

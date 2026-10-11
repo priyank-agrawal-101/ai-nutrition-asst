@@ -37,7 +37,7 @@ export const statusFor = (code: ErrorCode): number => {
   if (code === "BODY_TOO_LARGE") return 413;
   if (code === "UNSUPPORTED_MEDIA_TYPE") return 415;
   if (code === "VALIDATION_FAILED") return 422;
-  if (code === "RATE_LIMITED") return 429;
+  if (code === "RATE_LIMITED" || code === "PROVIDER_RATE_LIMITED") return 429;
   if (
     [
       "MODEL_SERVICE_FAILED",
@@ -53,6 +53,7 @@ export const statusFor = (code: ErrorCode): number => {
       "GENERATION_UNAVAILABLE",
       "STORAGE_UNAVAILABLE",
       "SERVICE_NOT_READY",
+      "PROVIDER_CAPACITY_EXCEEDED",
       "STORAGE_FAILED",
     ].includes(code)
   )
@@ -67,6 +68,20 @@ export const safeMessage = (code: ErrorCode): string =>
     STORAGE_UNAVAILABLE:
       "We couldn't confirm the saved state. Check again before trying another attempt.",
     RATE_LIMITED: "Please wait before trying again.",
+    PROVIDER_RATE_LIMITED:
+      "The AI usage limit has been reached. Please wait before trying again.",
+    PROVIDER_CAPACITY_EXCEEDED:
+      "This conversation needs more tokens than the configured AI limit allows. Shorten your question or start a new chat; if this continues, contact the operator.",
+    OUTPUT_REJECTED:
+      "The generated answer did not pass our safety checks. No answer was saved.",
+    OUTPUT_INVALID:
+      "The AI response was incomplete or had an invalid format. No answer was saved.",
+    MODEL_SERVICE_FAILED:
+      "The AI service could not complete the answer. Please try again later.",
+    SAFETY_CHECK_FAILED:
+      "We couldn't complete the required safety check. No answer was saved.",
+    ATTEMPT_TIMEOUT:
+      "The request took too long. No answer was saved. You can try again.",
     GENERATION_UNAVAILABLE: "New answers are temporarily unavailable.",
     VALIDATION_FAILED: "Check the request fields and question length.",
     INVALID_REQUEST:

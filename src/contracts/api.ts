@@ -87,6 +87,8 @@ export const retrySchema = z.strictObject({
 });
 export const emptySchema = z.strictObject({});
 export const failureCodes = [
+  "PROVIDER_RATE_LIMITED",
+  "PROVIDER_CAPACITY_EXCEEDED",
   "MODEL_SERVICE_FAILED",
   "OUTPUT_INVALID",
   "OUTPUT_REJECTED",
@@ -152,6 +154,9 @@ export const apiErrorSchema = z.strictObject({
 });
 export type ApiError = z.infer<typeof apiErrorSchema>;
 export const sessionSchema = z.strictObject({
+  diagnostics_enabled: z.boolean(),
+  provider_mode: z.enum(["scripted", "groq"]),
+  generation_enabled: z.boolean(),
   expires_at: timestamp,
   csrf_token: z.string().regex(/^[A-Za-z0-9_-]{43,128}$/),
   limits: z.strictObject({
@@ -194,7 +199,11 @@ export const turnSchema = z
       finished_at: timestamp.nullable(),
     }),
     failure: z
-      .strictObject({ code: z.enum(failureCodes), message: textSchema(300) })
+      .strictObject({
+        code: z.enum(failureCodes),
+        message: textSchema(300),
+        retry_at: timestamp.nullable(),
+      })
       .nullable(),
     retry: z.strictObject({
       allowed: z.boolean(),
@@ -214,6 +223,9 @@ export const turnSchema = z
     if (
       (t.assistant_message !== null) !== (t.status === "completed") ||
       (t.failure !== null) !== (t.status === "failed") ||
+      (t.failure !== null &&
+        (t.failure.retry_at !== null) !==
+          (t.failure.code === "PROVIDER_RATE_LIMITED")) ||
       (t.current_attempt.finished_at !== null) !== terminal ||
       (t.current_attempt.number === 1) !==
         (t.current_attempt.client_attempt_id === null) ||

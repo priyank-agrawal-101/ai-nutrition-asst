@@ -1,12 +1,36 @@
 # Gusto NutriBite: UX Flows
 
-Status: Phase 1 minimal local flow implemented, 11 October 2026; complete M1 design and accessibility acceptance remain Phase 2 work.
+Status: Phase 2 local flows implemented, 11 October 2026. Chromium keyboard/responsive checks passed; actual screen-reader review remains pending.
 
-The [local chat](../src/app/page.tsx) uses the existing Wise palette, rounded white surfaces, and system-font fallback through [shared tokens](../src/app/globals.css) and [CSS Modules](../src/app/chat.module.css). It explicitly labels scripted mode, preserves one question per turn, restores through reads, exposes explicit retry/check-again actions, and keeps Sources empty. The initial desktop layout is two columns; it stacks below 700px. See [browser evidence](testing.md#phase-1-implementation-evidence); this is not a claim of completed screen-reader or release browser-matrix review.
+The owner requested a new visual direction on 11 October 2026, replacing the Wise styling and reducing the prominence of notices. The [local chat](../src/app/page.tsx) now centres the conversation and composer. Sources, retention and diagnostic details are available through **About this chat**. It explicitly labels scripted mode, preserves one question per turn, restores through reads and exposes explicit retry/check-again actions. See [browser evidence](testing.md); automated checks are not a completed screen-reader or release browser-matrix review.
 
 Based on [problemStatement.md](problemStatement.md) and [product-spec.md](product-spec.md). Follow the [README writing rules](../README.md#writing-rules).
 
-This document covers user actions, visible states, and recovery. [Product positioning](product-positioning.md) owns brand voice. Use **Gusto NutriBite — Your personal AI nutrition companion** with clear, friendly, non-judgemental copy. The existing [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html) guide layout/styling; API and architecture own server behavior.
+This document covers user actions, visible states, and recovery. [Product positioning](product-positioning.md) owns brand voice. Use **Gusto NutriBite — Your personal AI nutrition companion** with clear, friendly, non-judgemental copy. The existing [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html) remain preserved historical assets; the owner-authorized design below now guides presentation. API and architecture own server behavior.
+
+## Visual direction and information hierarchy
+
+The food-table illustration provides the distinctive entry moment; the active transcript stays quiet. The design uses self-hosted Outfit for rounded headings and readable body text, with Trebuchet MS/sans-serif fallbacks. Tokens live in [shared CSS](../src/app/globals.css): plum `#3b244d`, muted plum `#6e6078`, pale lilac `#f6f3fa`, lilac `#e6ddf3`, mint `#d7eee3` and apricot `#f6b66e`. White is the reading surface. No remote font request or animation dependency is needed; the font's OFL license is included in `public/fonts/`.
+
+```text
+Brand + tagline                         About this chat   New chat
+┌──────────────────────────────────────────────────────────────┐
+│ Empty: invitation + illustrated plate                        │
+│        topic buttons + three starter questions               │
+│ Active: user questions + assistant answers                    │
+│         only relevant errors and recovery actions            │
+│ Question composer                                      Send  │
+│ Small storage/provider and answer-limitation footer           │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Copy and messages are left aligned; the wide-screen footer is centred. At narrow widths the starters stack, the illustration shrinks (hidden below 360px) and the composer stays full width. Review of the initial direction removed the permanent notices sidebar: it competed with the conversation and repeated the same limitations. This is a chat interface, not a nutrition dashboard; there are no invented health metrics, source cards or history controls.
+
+- Topic buttons change starter questions locally. Choosing a question fills and focuses the composer, without sending a request. Existing drafts disable starter selection so they cannot be overwritten.
+- The plate enters once when the empty state mounts, then tilts up to eight degrees in response to mouse position and returns to rest on pointer exit. Topic changes reveal the new question group; starter cards lift on hover and compress on press. Choosing a starter briefly highlights the composer without sending. Opening the information panel has a short slide. Reduced-motion preference disables decorative transforms, transitions and the composer pulse. Touch users retain normal scrolling and get press/selection feedback; no pointer tracking runs for touch. No looping decorative motion or simulated source search.
+- **About this chat** opens a native modal panel with Sources, data handling and enabled diagnostic details. Escape/Close dismiss it and return focus; the background is inert while open. The same control remains available on mobile and in error states.
+- The storage/provider summary and source limitation remain small, readable text beside the composer. Enabled private diagnostics have a short indicator pointing to the information panel. No repeated full privacy paragraphs in the conversation.
+- Completed answers supply the visible confirmation. “Response ready” and the duplicate saved-but-failed summary remain polite screen-reader announcements, without visible banners. Specific failure messages and recovery controls stay visible beside the affected request. Unknown/loading/waiting states remain visible.
 
 The chat recovery, new-chat, limits, notice, and accessibility behavior is adopted in the [product specification](product-spec.md). Button labels and message examples below guide UI implementation; exact assistant templates remain in [prompt-spec.md](prompt-spec.md).
 
@@ -38,10 +62,10 @@ Saved-chat recovery and input limits implement accepted `CHAT-04` and `CHAT-06`.
 
 | Area | User sees or does |
 | --- | --- |
-| Product identity | Shows **Gusto NutriBite** and **Your personal AI nutrition companion** on the entry/chat screen. Adapt placement from the existing reference/preview and verify responsive behavior. |
+| Product identity | Shows **Gusto NutriBite** and **Your personal AI nutrition companion** on the entry/chat screen. Verify responsive behavior. |
 | Conversation | Reads messages in order, with user and assistant clearly identified. Request errors appear beside the affected question. |
 | Question input | Types a question and uses **Send**. Input errors appear beside the field. |
-| Sources | Sees the panel throughout the conversation. Follow UX-05 for its content. |
+| Sources | Opens the panel through **About this chat** throughout the conversation. Follow UX-05 for its content. |
 | New chat | Starts a separate conversation under `CHAT-04`. |
 | Answer notice | Explains the limitation in `ANS-06`. Text: "Answers may be inaccurate. This version does not check sources." |
 
@@ -51,7 +75,7 @@ References: [Conversation](product-spec.md#conversation) (`CHAT-01`, `CHAT-04`),
 
 1. Open the public app URL. These flows use the adopted anonymous scope without registration.
 2. If the browser has an active conversation, show a loading state and follow UX-07. Otherwise, show an empty message list.
-3. Show the input and sources panel. Suggested empty-chat text: "Ask a question about food, nutrition, or food safety."
+3. Show the input, starter questions and **About this chat** control. Sources remain available inside that panel.
 4. Enable submission when the conversation is ready.
 
 Do not treat a failed history load as an empty conversation.
@@ -91,7 +115,7 @@ A refusal is a completed response, not a service error. Do not show **Retry** be
 
 References: [Answers and sources](product-spec.md#answers-and-sources) (`ANS-02`, `ANS-05`, `ANS-06`), [Milestone 2](product-spec.md#deployment-and-milestone-2) (`NEXT-01`).
 
-The sources panel has no entries in every Milestone 1 state: empty chat, waiting, answer, refusal, and error. Suggested text: "No sources available in this version."
+The sources panel inside **About this chat** has no entries in every Milestone 1 state: empty chat, waiting, answer, refusal, and error. Text: "No sources available in this version." This collapsible presentation is an owner-authorized change from the brief's permanent adjacent panel; the source contract is unchanged.
 
 Do not show a source-search animation or turn an authority mentioned in an answer into a citation link. Milestone 2 will populate this same panel; citation interactions will be specified then.
 
@@ -146,7 +170,7 @@ References: [Backend and usability](product-spec.md#backend-and-usability) (`SYS
 - Let users reach the input and actions by keyboard, with visible focus. **Enter** sends; **Shift+Enter** adds a line. Do not send while a text-composition input is active.
 - Announce loading, completion, and errors to screen readers. Do not move focus away while the user is typing or reading.
 - Keep new messages in view when the user is already at the bottom. Do not force-scroll someone reading earlier messages.
-- Keep sources reachable on mobile. Adapt the reference layout and record final placement/supported widths during UI implementation.
+- Keep sources reachable through **About this chat** on mobile. Record supported widths during UI verification.
 
 ## Implementation handoff
 
@@ -155,8 +179,20 @@ References: [Backend and usability](product-spec.md#backend-and-usability) (`SYS
 | Implement accepted recovery, limits, source notice, and accessibility behavior | Product spec and this document |
 | Materialize seven-day access, status lookup, and explicit retry | Architecture and API contract |
 | Implement the adopted mixed, ambiguous, unrelated, urgent, and sensitive rules | Safety and security; prompt spec owns templates |
-| Final copy, mobile placement, and accessibility | Positioning for voice; existing design references plus implementation choices for presentation; prompt specification for assistant wording |
+| Final copy, mobile placement, and accessibility | Positioning for voice; visual direction above for presentation; prompt specification for assistant wording |
 
 Use the [efficiency guide](token-optimization-and-efficiency.md) when setting limits and retries. These flows add no evaluation dashboard or claims-inspection screen; evaluator procedures belong in `evaluation.md`.
 
-Follow the [implementation plan](phase-wise-implementation-plan.md) and existing design references; no duplicate design-guide task is required. Record remaining presentation choices here or in testing/code as appropriate. Show a truthful storage/provider notice before collecting messages, without a manual-deletion promise.
+Follow the [implementation plan](phase-wise-implementation-plan.md); no duplicate design-guide task is required. Record remaining presentation choices here or in testing/code as appropriate. Show a truthful storage/provider notice before collecting messages, without a manual-deletion promise.
+
+## Phase 2 interaction evidence
+
+Status recovery announces "Response ready" only when the submitted/retried turn is completed with a saved assistant message. A failed result announces that the question is saved but no answer is ready, with the specific safe failure shown beside the question. Historical failure codes remain unchanged.
+
+For a known quota wait, use the existing concise failure/status message; do not show a separate seconds-countdown banner. Disable Send/Retry while keeping the draft editable. Expiry enables an explicit action; it never sends automatically. A pre-acceptance rejection preserves the pending operation ID for an unchanged request and consumes no turn/attempt. A stored quota failure retains its retry timestamp across refresh. History/status checks remain available during the wait. See the [API retry-time contract](api-contract.md#8-errors-and-recovery-instructions).
+
+The earlier Wise-based layout passed Chromium checks at 320, 390, 768 and 1280px, including wrapped input and refusal text. Those historical results remain in testing; the owner-authorized redesign uses the same widths and moves Sources into the information panel. Original reference assets are preserved.
+
+Enter sends, Shift+Enter inserts a line, and active IME composition never submits. A native modal supplies Keep editing / Discard and start with focus containment. New-chat failure preserves the current conversation and draft while the creation receipt is recovered. Message scrolling follows the latest exchange only when already near the bottom; a separate live status region avoids announcing the whole transcript on every poll. The visible data notice identifies local storage and Groq transmission before input, with details of seven-day access, background cleanup, shared-browser access and provider retention.
+
+Automated keyboard/ARIA checks and visual inspection do not establish actual assistive-technology behaviour. A human screen-reader pass remains required before marking Phase 2 fully complete. The broader release browser matrix remains Phase 3.

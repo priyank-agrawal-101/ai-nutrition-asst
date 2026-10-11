@@ -28,6 +28,7 @@ import {
   gate,
 } from "../support/scripted-provider";
 import { configEnv } from "../support/config";
+import { AppError } from "../../src/server/errors";
 import { seedTurn } from "../support/seed-turn";
 let db: Database, admin: Database;
 const config = loadConfig(configEnv());
@@ -347,7 +348,7 @@ describe("Durable PostgreSQL lifecycle", () => {
     } finally {
       for (const f of fixtures)
         f.release.resolve(
-          fixtureResult({ verdict: "allow", reason: "scripted_fixture" }),
+          fixtureResult({ action: "allow", reason: "general_education" }),
         );
       await Promise.all(pending);
     }
@@ -505,7 +506,7 @@ describe("Durable PostgreSQL lifecycle", () => {
       ),
     ).rejects.toMatchObject({ code: "CONVERSATION_BUSY" });
     release.resolve(
-      fixtureResult({ verdict: "allow", reason: "scripted_fixture" }),
+      fixtureResult({ action: "allow", reason: "general_education" }),
     );
     const result = await pending;
     expect(result.turn.status).toBe("completed");
@@ -578,7 +579,10 @@ describe("Durable PostgreSQL lifecycle", () => {
         answer(),
         {
           phase: "output_safety",
-          result: fixtureResult({ verdict: "reject" }),
+          result: fixtureResult({
+            action: "reject",
+            reason: "policy_violation",
+          }),
         },
       ]),
       f = await setup(provider);
@@ -783,6 +787,92 @@ describe("Durable PostgreSQL lifecycle", () => {
 });
 
 describe("HTTP contract through the actual handler", () => {
+  it("EC-OPS-05 HTTP 429 reports acceptance and retry time; replay stays read-only", async () => {
+    const provider = new ScriptedProvider([
+      {
+        phase: "input_safety",
+        result: new AppError(
+          "PROVIDER_RATE_LIMITED",
+          "accepted",
+          "check_status",
+          90,
+        ),
+      },
+    ]);
+    const handler = createHandler(
+      db,
+      config,
+      new TurnService(db, config, provider),
+      () => {},
+    );
+    let auth: Record<string, string> = {};
+    const request = (path: string, body?: unknown) =>
+      handler(
+        new Request(`${config.origin}/api/v1/${path}`, {
+          method: body === undefined ? "GET" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: config.origin,
+            ...auth,
+          },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        }),
+      );
+    const boot = await request("session", {});
+    const session = envelope(sessionSchema).parse(
+      (await boot.json()) as unknown,
+    );
+    if (!("data" in session)) throw Error("Expected session");
+    auth = {
+      Cookie: boot.headers.get("set-cookie")?.split(";")[0] ?? "",
+      "X-CSRF-Token": session.data.csrf_token,
+    };
+    const created = envelope(conversationSchema).parse(
+      (await (
+        await request("conversations", { client_conversation_id: randomUUID() })
+      ).json()) as unknown,
+    );
+    if (!("data" in created)) throw Error("Expected conversation");
+    const path = `conversations/${created.data.id}/turns`;
+    const body = {
+      client_submission_id: randomUUID(),
+      question: "Synthetic HTTP quota",
+    };
+    const limited = await request(path, body);
+    expect(limited.status).toBe(429);
+    const error = envelope(operationSchema).parse(
+      (await limited.json()) as unknown,
+    );
+    if (!("error" in error)) throw Error("Expected rate failure");
+    expect(error.error).toMatchObject({
+      code: "PROVIDER_RATE_LIMITED",
+      operation_state: "accepted",
+      recovery: { action: "check_status" },
+    });
+    expect(limited.headers.get("Retry-After")).toBe(
+      String(error.error.recovery.retry_after_seconds),
+    );
+    const replay = await request(path, body);
+    expect(replay.status).toBe(200);
+    const saved = envelope(operationSchema).parse(
+      (await replay.json()) as unknown,
+    );
+    if (!("data" in saved)) throw Error("Expected saved operation");
+    expect(saved.data.operation.replayed).toBe(true);
+    expect(saved.data.turn.failure?.retry_at).not.toBeNull();
+    const retry = await request(`${path}/${saved.data.turn.id}/attempts`, {
+      client_attempt_id: randomUUID(),
+      failed_attempt_id: saved.data.turn.current_attempt.id,
+    });
+    expect(retry.status).toBe(429);
+    const retryError = envelope(operationSchema).parse(
+      (await retry.json()) as unknown,
+    );
+    expect("error" in retryError && retryError.error.operation_state).toBe(
+      "not_accepted",
+    );
+    expect(provider.calls).toHaveLength(1);
+  });
   it("EC-SEC-05/06 EC-INPUT-07 enforces Origin, CSRF, raw parsing, private envelopes and ownership", async () => {
     const provider = new ScriptedProvider([allow(), answer(), review()]),
       service = new TurnService(db, config, provider),

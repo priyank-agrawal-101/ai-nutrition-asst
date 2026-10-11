@@ -69,6 +69,8 @@ A **schema** defines the required fields, types, and allowed values in a respons
 | ANS-06 | Approved addition | Explain that answers lack retrieved sources and may be wrong. | Users can find a clear, accessible notice in the chat experience. |
 | ANS-07 | Derived | Keep answers relevant and concise; state uncertainty when needed. | Evaluation checks unsupported certainty and answers too vague to help. `prompt-spec.md` sets answer length and style. |
 
+**Owner-authorized presentation change, 11 October 2026:** ANS-05's original adjacent-panel requirement is retained above for traceability. The frontend redesign makes the empty Sources panel available through **About this chat**, rather than permanently occupying space beside the transcript. The owner asked to prioritise chat and reduce prominent notices. ANS-06 remains a small visible limitation notice; sources stay null and no retrieval capability is added. [UX](ux-flow.md#visual-direction-and-information-hierarchy) owns the placement and interaction.
+
 `api-contract.md` defines field names, types, and allowed empty lists. A refusal or clarification with no factual statements may have no claims; do not invent claims to fill the list.
 
 A source named in answer text is not verified evidence. Record invented attributions in the failure log; do not turn them into source entries or verification badges.

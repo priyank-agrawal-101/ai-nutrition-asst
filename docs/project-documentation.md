@@ -2,7 +2,7 @@
 
 Last updated: 11 October 2026.
 
-**Current stage:** M1 implementation plan approved and created; no coding has started. The selected stack, English chat/usability behavior, safety policies, and initial limits/retention are recorded in their owners. Manual deletion is deferred as FB-001. Existing Wise design files are included directly in the plan, with no duplicate guide prerequisite. The short assignment comparison maps coverage and extra complexity. Agent/operations guidance is now present; Phase 1 is next. No app, test harness, live evaluation, or deployment is complete.
+**Current stage:** Phase 1 is locally built and tested. Phase 2 implements Groq, safety enforcement and the chat UI, with software and live smoke evidence recorded; actual screen-reader review remains pending. Full Phase 3 evaluation and public deployment have not been completed. The [implementation plan](phase-wise-implementation-plan.md) owns phase status.
 
 ## Our approach
 
@@ -53,4 +53,127 @@ Phase 1 implementation, 11 October 2026: created the single pinned Next.js app a
 
 ## Next step
 
-After Phase 1 verification, follow Phase 2 in the [implementation plan](phase-wise-implementation-plan.md): verify the real provider, implement the adopted safety pipeline, and complete the application UI. Use existing design references and preserve the persistence/recovery guarantees. Keep documented, built, tested, evaluated, and deployed statuses distinct.
+The status/rate-limit repair and temporary local diagnostic capture are implemented. The owner-requested `m1-prompts-v2` classification update has software verification and a [recorded live regression](evaluation.md#classifier-v2-regression); consult that record for completed and unrun cases. Complete the remaining policy-extension, factual and accessibility reviews under Phase 3 in the [implementation plan](phase-wise-implementation-plan.md). Preserve stored data and recovery guarantees, and distinguish built, tested, evaluated and deployed work.
+
+## 11 October 2026: Phase 2 implementation
+
+The owner selected Groq instead of OpenAI/Anthropic. The local assistant now has the adopted versioned prompts/templates, deterministic input/output rules, strict classifier/reviewer schemas, Groq GPT-OSS 120B adapter, provider usage/account reservations, additive migration and generation controls. The UI includes draft confirmation, input limits, keyboard/IME behavior, recovery, responsive sources and a truthful Groq data notice.
+
+See [Phase 2 testing evidence](testing.md#phase-2-implementation-evidence) and [the implementation plan](phase-wise-implementation-plan.md). Software tests, model compatibility/smoke, full factual evaluation, assistive-technology review and public deployment are separate evidence categories. Phase 3/4 are not completed by this work.
+
+## Verify stored user messages in VS Code
+
+Status/rate-limit repair, 11 October 2026: corrected recovery success reporting, separated provider quota/capacity failures from safety failures, added durable retry times and upstream cooldown, and added pre-acceptance availability checks. The UI retains drafts and waits for explicit retry. Existing failure records are preserved. Rejected-answer capture remains disabled; the [evaluation diagnostic recommendation](evaluation.md) defines a future synthetic-only capture boundary. Verification is recorded in [testing](testing.md).
+
+Subsequent owner request, 11 October 2026: implemented temporary local diagnostic capture to inspect rejected model responses and input decisions. This supersedes the earlier capture proposal above. The facility is separate from ordinary messages, uses an expiring operator switch and automatic cleanup, and is not a claim that classification quality has been corrected. Exact controls and privacy limits are in [operations](deployment-and-operations.md#temporary-local-diagnostics).
+
+Added 11 October 2026 following the owner's local storage walkthrough. This is a manual inspection procedure; formal persistence test evidence remains in [testing](testing.md#phase-2-implementation-evidence).
+
+PostgreSQL stores its internal files under `.tmp/local/cluster/data`. Tables do not appear as named files in VS Code Explorer. Connect to the running database to read them; do not edit its internal storage files.
+
+### Connect with SQLTools
+
+1. Keep the local app running. If it is stopped, use `npm run dev` from this repository after completing the [local setup](../README.md#run-the-local-assistant).
+2. In VS Code, open **Extensions** (`Ctrl+Shift+X`) and install **SQLTools** and **SQLTools PostgreSQL/Cockroach Driver**.
+3. Open the **SQLTools** sidebar, select **Add New Connection**, and choose **PostgreSQL**.
+4. Enter the following settings. Local ports are allocated per installation, so read the saved value rather than assuming a fixed port.
+
+   | Setting | Value |
+   | --- | --- |
+   | Connection name | `Gusto Local` |
+   | Server / Host | `127.0.0.1` |
+   | Port | The `port` value in `.tmp/local/cluster/owner.json` |
+   | Database | `nutribite_local` |
+   | Username | `nutribite_local_runtime` |
+   | Password | The `runtimePassword` value in `.tmp/local/app.json`, without surrounding quotes |
+   | SSL | Disabled for this loopback connection |
+
+5. Use the extension's password prompt or secure credential storage; keep the password out of workspace settings, screenshots and Git. Select **Test Connection**, then **Save Connection** and **Connect**.
+6. Expand **Gusto Local → nutribite_local → public → Tables**. Some extension versions omit a level. Right-click **messages** and select **Show Table Records**, or open a query connected to **Gusto Local**.
+
+### Check a saved question
+
+Run this read-only query to see the latest user messages with their current request status:
+
+```sql
+SELECT m.id AS message_id,
+       m.created_at,
+       t.conversation_id,
+       m.user_text,
+       t.status AS turn_status,
+       a.failure_code
+FROM public.messages AS m
+JOIN public.turns AS t ON t.id = m.turn_id
+JOIN public.attempts AS a ON a.id = t.current_attempt_id
+WHERE m.role = 'user'
+ORDER BY m.created_at DESC, m.id
+LIMIT 50;
+```
+
+1. Find a question already visible in your chat and match it to `user_text` in the results. Reading existing messages makes no Groq call. Sending a new question in Groq mode does use the configured provider budget.
+2. Note its `message_id`, refresh the existing chat tab, and run the query again. The same row and ID should remain; refreshing should not create another user message.
+3. A `failed` turn can still have a successfully stored user question. An assistant message is stored only after its answer passes validation and safety review and commits successfully. Rejected candidates are not saved as assistant messages.
+
+For a simple view of both user and accepted assistant messages, run:
+
+```sql
+SELECT id, turn_id, created_at, role, user_text,
+       content ->> 'answer' AS assistant_answer
+FROM public.messages
+ORDER BY created_at DESC, id
+LIMIT 50;
+```
+
+| Table | What to inspect |
+| --- | --- |
+| `messages` | Saved user text and accepted assistant content |
+| `turns` | Question order, conversation ID and current status |
+| `attempts` | Initial attempt, retries and failure details |
+| `provider_calls` | Model phases, validation results and recorded token usage |
+
+These queries inspect the local database directly; the browser API additionally enforces session ownership. Records remain subject to the configured automatic expiry and cleanup. See the [data model](data-model.md) for field meanings and [operations](deployment-and-operations.md#phase-2-groq-local-operation) for local runtime behavior.
+
+## Inspect rejected model responses
+
+1. Keep the upgraded local app running. In the project terminal, run `npm run diagnostics:on` to enable capture for 24 hours, then refresh the existing chat tab. The page shows a local-diagnostics notice. Enabling capture does not call Groq.
+2. Use the existing SQLTools connection and refresh its table list. Expand **public → Tables → model_diagnostics**. It is separate from `messages` because rejected text must never appear as a completed answer.
+3. After a new rejected response or model-driven input refusal, run the query below. Sending questions uses the normal Groq limits; do not repeatedly retry just to obtain a different classification.
+
+```sql
+SELECT d.captured_at, d.expires_at, d.reason,
+       m.user_text AS question,
+       d.payload #>> '{input_safety,text}' AS input_decision,
+       d.payload #>> '{answer,text}' AS received_answer,
+       d.payload #>> '{output_safety,text}' AS output_review,
+       a.run_manifest #>> '{prompts,version}' AS prompt_version,
+       a.run_manifest -> 'prompts' -> 'hashes' AS prompt_hashes,
+       a.run_manifest -> 'provider' AS model_settings
+FROM public.model_diagnostics AS d
+JOIN public.attempts AS a ON a.id = d.attempt_id
+JOIN public.messages AS m ON m.turn_id = a.turn_id AND m.role = 'user'
+WHERE d.expires_at > clock_timestamp()
+ORDER BY d.captured_at DESC
+LIMIT 20;
+```
+
+4. If `reason` is `INPUT_BOUNDARY`, the classifier selected refusal/clarification before generation: `received_answer` is null. If output review rejected an answer, both the received answer and returned review should be present when capture succeeded. A code-level rejection can have an answer but no model review; a timeout/error can leave a phase absent. Inspect the JSON payload's `complete`, `truncated` and `redacted` flags before interpreting the text. Missing data is not a successful answer or a known-safe result.
+5. Successful answers remain only in `messages`. Captures are not backfilled for old attempts, and previously discarded content cannot be recovered. `npm run diagnostics:status` reports the switch and record count without printing content.
+6. Finish with `npm run diagnostics:off`. To remove the captured records immediately, also run `npm run diagnostics:purge`. Otherwise they expire within 24 hours or at session expiry; cleanup runs while the app is active and resumes on startup. Keep content in this private local database and out of shared screenshots, logs and Git.
+
+## Check classification after a prompt update
+
+The `m1-prompts-v2` bundle distinguishes general adult nutrient guidance and food preferences from clinical prescriptions. General protein, fibre and food questions should receive useful educational answers. Calorie/weight targets, clinical diets and personal prescriptions still receive the appropriate boundary. An earlier refusal should not block an independent safe question; a follow-up still asking for the prohibited advice remains excluded.
+
+Historical messages and attempts are preserved. After restarting the rebuilt app, submit a new question to test new behavior; a completed policy refusal is not a failed attempt with a Retry action. In the SQL query above, inspect `prompt_version` and `prompt_hashes` to distinguish old and new attempts. A captured `INPUT_BOUNDARY` has no generated answer. A rejected generated response may have both the candidate and reviewer verdict. These are different failures and need different corrections.
+
+See the [controlled regression results](evaluation.md#classifier-v2-regression) for the tested cases and limits. Passing route checks does not establish factual accuracy for every answer.
+
+## Frontend redesign and quieter notices
+
+On 11 October 2026 the owner requested a new design independent of Wise and asked that notifications stop dominating the chat. The frontend now uses a plum/lilac/mint palette, self-hosted Outfit typography and an illustrated food plate. Topic buttons offer starter questions that fill the composer without sending; existing drafts are protected. The welcome artwork gives way to the transcript as soon as a question is submitted. Reduced-motion settings disable decorative movement.
+
+Sources, storage/retention and detailed diagnostic notices moved into **About this chat**. Compact storage/provider and accuracy text remains near the composer. Successful completion no longer leaves a visible banner, while screen-reader announcements and actionable errors remain. The original sources requirement and the owner-approved presentation change are recorded against ANS-05; no source data or safety policy changed.
+
+The original Wise files, saved conversations and quota ledger were preserved. This frontend work used no Groq calls. See [UX](ux-flow.md#visual-direction-and-information-hierarchy) for design/interaction decisions and [testing](testing.md#frontend-redesign-verification) for verification and remaining release checks.
+
+The owner also requested more interactive animation: mouse-driven plate tilt, animated topic changes, tactile starter cards and a brief composer highlight now respond to interaction. Reduced-motion preferences are respected; the scripted browser checks confirm these effects make no automatic submissions. See the follow-up evidence in [testing](testing.md#frontend-redesign-verification).

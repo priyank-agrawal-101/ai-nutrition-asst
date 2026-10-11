@@ -18,8 +18,11 @@
     },
     {
       "id": "EC-CTX-04",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/safety.test.ts",
+        "tests/unit/safety.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-CTX-05",
@@ -35,6 +38,7 @@
       "id": "EC-CTX-07",
       "tests": [
         "tests/integration/foundation.test.ts",
+        "tests/integration/safety.test.ts",
         "tests/unit/context.test.ts"
       ],
       "status": "case-linked; inspect covered variants"
@@ -46,8 +50,11 @@
     },
     {
       "id": "EC-CTX-09",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/safety.test.ts",
+        "tests/unit/safety.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-CTX-10",
@@ -81,7 +88,10 @@
     },
     {
       "id": "EC-DATA-04",
-      "tests": ["tests/integration/foundation.test.ts"],
+      "tests": [
+        "tests/integration/diagnostics.test.ts",
+        "tests/integration/foundation.test.ts"
+      ],
       "status": "case-linked; inspect covered variants"
     },
     {
@@ -91,12 +101,18 @@
     },
     {
       "id": "EC-DATA-06",
-      "tests": ["tests/integration/foundation.test.ts"],
+      "tests": [
+        "tests/integration/diagnostics.test.ts",
+        "tests/integration/foundation.test.ts"
+      ],
       "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-DATA-07",
-      "tests": ["tests/integration/foundation.test.ts"],
+      "tests": [
+        "tests/integration/diagnostics.test.ts",
+        "tests/integration/foundation.test.ts"
+      ],
       "status": "case-linked; inspect covered variants"
     },
     {
@@ -131,13 +147,13 @@
     },
     {
       "id": "EC-EDU-03",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/unit/safety.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-EDU-04",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/unit/safety.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-EDU-05",
@@ -173,6 +189,11 @@
       "id": "EC-EDU-11",
       "tests": [],
       "status": "pending broader M1 verification in phases 2-3"
+    },
+    {
+      "id": "EC-EDU-12",
+      "tests": ["tests/unit/safety.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-FOOD-01",
@@ -241,8 +262,8 @@
     },
     {
       "id": "EC-INJECT-05",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/unit/safety.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-INJECT-06",
@@ -319,8 +340,11 @@
     },
     {
       "id": "EC-LIMIT-01",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/safety.test.ts",
+        "tests/unit/safety.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-LIMIT-02",
@@ -344,8 +368,8 @@
     },
     {
       "id": "EC-LIMIT-06",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/unit/safety.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-LIMIT-07",
@@ -379,8 +403,8 @@
     },
     {
       "id": "EC-LIMIT-13",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/unit/safety.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-LIMIT-14",
@@ -394,7 +418,7 @@
     },
     {
       "id": "EC-MODEL-01",
-      "tests": ["tests/unit/contracts.test.ts"],
+      "tests": ["tests/unit/contracts.test.ts", "tests/unit/groq.test.ts"],
       "status": "case-linked; inspect covered variants"
     },
     {
@@ -419,8 +443,11 @@
     },
     {
       "id": "EC-MODEL-06",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/diagnostics.test.ts",
+        "tests/unit/groq.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-MODEL-07",
@@ -429,8 +456,8 @@
     },
     {
       "id": "EC-MODEL-08",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/unit/groq.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-MODEL-09",
@@ -444,37 +471,59 @@
     },
     {
       "id": "EC-MODEL-11",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/safety.test.ts",
+        "tests/unit/safety.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-MODEL-12",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/safety.test.ts",
+        "tests/unit/safety.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-MODEL-13",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/diagnostics.test.ts",
+        "tests/integration/safety.test.ts",
+        "tests/unit/safety.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-MODEL-14",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/diagnostics.test.ts",
+        "tests/integration/safety.test.ts",
+        "tests/unit/safety.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-MODEL-15",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/integration/safety.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-MODEL-16",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/safety.test.ts",
+        "tests/unit/groq.test.ts",
+        "tests/unit/rate-limit.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-MODEL-17",
-      "tests": ["tests/integration/foundation.test.ts"],
+      "tests": [
+        "tests/integration/foundation.test.ts",
+        "tests/integration/safety.test.ts",
+        "tests/unit/groq.test.ts"
+      ],
       "status": "case-linked; inspect covered variants"
     },
     {
@@ -514,8 +563,13 @@
     },
     {
       "id": "EC-OPS-05",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/browser/chat.spec.ts",
+        "tests/integration/foundation.test.ts",
+        "tests/integration/safety.test.ts",
+        "tests/unit/rate-limit.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-OPS-06",
@@ -718,12 +772,12 @@
     },
     {
       "id": "EC-SEC-07",
-      "tests": ["tests/unit/contracts.test.ts"],
+      "tests": ["tests/unit/contracts.test.ts", "tests/unit/groq.test.ts"],
       "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-SEC-08",
-      "tests": ["tests/browser/chat.spec.ts"],
+      "tests": ["tests/browser/chat.spec.ts", "tests/unit/diagnostics.test.ts"],
       "status": "case-linked; inspect covered variants"
     },
     {
@@ -738,8 +792,11 @@
     },
     {
       "id": "EC-SEC-11",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/diagnostics.test.ts",
+        "tests/unit/diagnostics.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-SEC-12",
@@ -753,8 +810,8 @@
     },
     {
       "id": "EC-SENSE-01",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/unit/safety.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-SENSE-02",
@@ -818,13 +875,13 @@
     },
     {
       "id": "EC-UI-03",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/browser/chat.spec.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-UI-04",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/browser/chat.spec.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-UI-05",
@@ -838,13 +895,13 @@
     },
     {
       "id": "EC-UI-07",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/browser/chat.spec.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-UI-08",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/browser/chat.spec.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-UI-09",
@@ -853,13 +910,13 @@
     },
     {
       "id": "EC-UI-10",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/browser/chat.spec.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-UI-11",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/browser/chat.spec.ts"],
+      "status": "case-linked; inspect covered variants"
     }
   ]
 }

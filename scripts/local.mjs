@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { parseEnv } from "node:util";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import pg from "pg";
@@ -6,6 +7,22 @@ import { startCluster, child, exited, freePort } from "./postgres.mjs";
 import { migrate } from "./migration-lib.mjs";
 const directory = resolve(".tmp/local"),
   settingsPath = resolve(directory, "app.json");
+let localEnv = {};
+try {
+  localEnv = parseEnv(await readFile(resolve(".env"), "utf8"));
+} catch (error) {
+  if (error.code !== "ENOENT") throw new Error("Could not read project .env");
+}
+const providerMode =
+  process.env.PROVIDER_MODE ?? localEnv.PROVIDER_MODE ?? "scripted";
+const groqKey = process.env.GROQ_API_KEY ?? localEnv.GROQ_API_KEY ?? "";
+if (
+  !["scripted", "groq"].includes(providerMode) ||
+  (providerMode === "groq" && !groqKey.trim())
+)
+  throw new Error(
+    "Set PROVIDER_MODE=groq and GROQ_API_KEY in the ignored project .env, or select scripted mode.",
+  );
 await mkdir(directory, { recursive: true });
 let settings;
 try {
@@ -73,18 +90,24 @@ try {
     TMP: directory,
     APP_ENV: "local",
     APP_ORIGIN: origin,
-    PROVIDER_MODE: "scripted",
+    PROVIDER_MODE: providerMode,
+    GROQ_API_KEY: providerMode === "groq" ? groqKey : "",
+    GROQ_DAILY_CALL_LIMIT: localEnv.GROQ_DAILY_CALL_LIMIT ?? "1000",
+    GROQ_DAILY_TOKEN_LIMIT: localEnv.GROQ_DAILY_TOKEN_LIMIT ?? "200000",
+    __NEXT_PROCESSED_ENV: "true",
     DATABASE_URL: url.toString(),
     CSRF_KEYS: JSON.stringify({ v1: settings.csrf }),
     CSRF_ACTIVE_KEY: "v1",
     QUOTA_KEY: settings.quota,
     QUOTA_KEY_VERSION: "v1",
-    GENERATION_ENABLED: "true",
-    BUILD_ID: "local-uncommitted",
+    GENERATION_ENABLED:
+      process.env.GENERATION_ENABLED ?? localEnv.GENERATION_ENABLED ?? "true",
+    BUILD_ID:
+      "local-" + (await readFile(resolve(".next/BUILD_ID"), "utf8")).trim(),
     NEXT_TELEMETRY_DISABLED: "1",
   };
   console.info(
-    `Gusto NutriBite local scripted mode: ${origin}\nData stays in .tmp/local. Ctrl+C stops only this app and its database.`,
+    `Gusto NutriBite local ${providerMode} mode: ${origin}\nData stays in .tmp/local. Ctrl+C stops only this app and its database.`,
   );
   // Production build avoids a development worker tree and never binds a public interface.
   server = child(

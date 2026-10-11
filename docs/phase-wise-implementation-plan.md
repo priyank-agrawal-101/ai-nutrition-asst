@@ -1,6 +1,6 @@
 # Gusto NutriBite: Phase-wise Implementation Plan
 
-Status: Phase 1 complete and locally verified on 11 October 2026. Phases 2-4 not started; M1 is not yet evaluated or deployed.
+Status: Phase 1 complete. Phase 2 implemented and locally verified; manual screen-reader review remains before Phase 2 sign-off. Scoped Phase 3 classifier regression is in progress; factual release review and Phase 4 remain pending. M1 is not fully evaluated or publicly deployed.
 
 Last updated: 11 October 2026.
 
@@ -14,7 +14,7 @@ The repository was audited on 11 October 2026 at local commit `ac648c8`. It cont
 
 The core specifications agree on structured output, null sources in M1, backend-only model calls, stored-message integrity, safety gates, and recovery. The approved corrections resolve proposed-scope ambiguity, defer manual deletion, align limits and history behavior, correct stale document handoffs, and separate pre-deployment clearance from deployed verification.
 
-The existing [Wise design reference](design-references/wise/DESIGN.md) and [HTML preview](design-references/wise/preview.html) are the starting point for M1 UI implementation, as directed by the project owner. Use their typography, palette, spacing, components, and chat-state study without importing unrelated reference features. They contain simulated interactions, not a working app. Their source was inspected; no fresh browser visual verification is claimed.
+The existing [Wise design reference](design-references/wise/DESIGN.md) and [HTML preview](design-references/wise/preview.html) were the original M1 starting point. On 11 October 2026 the owner authorized a complete frontend redesign independent of Wise, with motion, interactive elements and less prominent notices. [UX](ux-flow.md#visual-direction-and-information-hierarchy) now owns presentation. Preserve the original assets and the M1 scope; the empty Sources panel moves behind **About this chat**, as recorded against ANS-05 in the product specification.
 
 ## 2. Approved baseline and preparation
 
@@ -26,7 +26,7 @@ The existing [Wise design reference](design-references/wise/DESIGN.md) and [HTML
 - Input, history, output, timeout, retry, and usage bounds; visible errors and durable recovery; desktop, mobile, and keyboard support.
 - Fixed-question evaluation, three fresh consistency samples, safety checks, preserved failure counts, GitHub delivery, and public deployment.
 
-The chosen stack is one Next.js/TypeScript app, PostgreSQL, Drizzle, CSS Modules, Zod, npm, Vitest, Playwright, and Railway hosting. Use one application instance initially. OpenAI remains the first provider candidate, not a verified model selection. Start with one compatible provider/model configuration for classification, generation, and review unless evidence requires a reviewed change.
+The chosen stack is one Next.js/TypeScript app, PostgreSQL, Drizzle, CSS Modules, Zod, npm, Vitest, Playwright, and Railway hosting. Use one application instance initially. The owner selected Groq on 11 October 2026; Phase 2 pins openai/gpt-oss-120b after live strict-schema probes. Start with one compatible provider/model configuration for classification, generation, and review unless evidence requires a reviewed change.
 
 Manual session-wide deletion is deferred as [FB-001](feature-backlog.md#backlog); no deletion endpoint, confirmation UI, deletion receipt, or separate deletion ledger is required in M1. Automatic expiry, security revocation, scoped cleanup, and truthful privacy information remain required. New chat does not delete history.
 
@@ -46,7 +46,7 @@ Use the [architecture configuration](architecture.md#initial-configuration-defau
 | --- | --- | --- |
 | Blocker before database integration | No project DB configuration; Docker and `psql` were not found on PATH during audit, which does not prove they are uninstalled. | Pin compatible runtime/package/PostgreSQL versions and provision an isolated container or explicitly dedicated test cluster. Never reuse another project's database. |
 | Blocker before real provider integration | Exact model/endpoint, account access, native schemas, completion handling, settings, and privacy are unverified. | Run the isolated adapter compatibility check, then evaluate through the ordinary app pipeline. Fake-provider work can proceed independently. |
-| Important during UI implementation | Existing Wise reference and preview need application-specific adaptation and verification. | Use those files directly; record chat layout/accessibility decisions in UX/testing and implemented tokens. No duplicate design-guide creation is required. |
+| Important during UI implementation | Owner-authorized visual redesign needs chat-state and responsive verification. | Record chat layout/accessibility decisions in UX/testing and implemented tokens. Preserve Wise source assets; no duplicate design guide is required. |
 | Blocker before paid evaluation | Run budget, reviewer, and controlled artifact destination are unresolved. | Record these before dispatch, with quota allocation and pacing in the manifest. |
 | Blocker before public operation | Hosting settings, spend/alerts, operator/contact, retention enforcement, and recovery evidence are unverified. | Complete and verify the operations baseline before opening the service. |
 
@@ -61,7 +61,7 @@ These prerequisites block their affected work, not every independent task. No de
 
 | Supporting document | Before its dependent work | Alongside implementation |
 | --- | --- | --- |
-| [Existing design reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html) | Already present; inspect and reuse for the chat | Record application-specific choices in UX/testing and code; verify desktop/mobile, focus, contrast, and source/error states |
+| [Existing design reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html) | Preserved historical assets; new direction authorized in UX | Record application-specific choices in UX/testing and code; verify desktop/mobile, focus, contrast, and source/error states |
 | [Evaluation](evaluation.md) | Existing method and fixed set are the baseline; freeze executable wording and adopted selections before live runs | Runner, dated reference pack, human reviews, and actual results |
 | [Testing](testing.md) | Use existing command/isolation contract and corrected scope applicability | Harness, fixtures, coverage mapping, CI, and evidence |
 | [Code conventions](code-conventions.md) | Selected stack and schema/module boundaries | Pinned tooling and implementation links |
@@ -107,41 +107,47 @@ Keep the short [assignment comparison](problem-statement-alignment.md) as the re
 
 ### Phase 2 — Complete local assistant with real model and UI
 
-**Status:** Not started. **Depends on:** Phase 1, existing design references, compatible provider access, and a bounded live-call budget.
+**Status:** In progress — implementation and automated/local live verification complete; actual screen-reader review remains pending. **Dependencies met:** Phase 1, existing design references, Groq access and the owner-approved bounded smoke allocation.
 
 **Objective:** Deliver the smallest complete, usable M1 product locally.
 
 **Tasks**
 
-- [ ] Verify the three provider schemas, raw output access, completion/refusal handling, supported settings, cancellation, and usage; pin the working configuration and disable SDK retries.
-- [ ] Implement versioned prompts, deterministic safety rules, constant templates, contextual classification, and separate output review.
-- [ ] Connect calls to the existing turn lifecycle, validation, usage records, and atomic completion gates.
-- [ ] Finish follow-ups, new chat, restored history, pending/unknown/failed states, retry, and input/history-limit feedback.
-- [ ] Keep sources empty and the source limitation notice visible; preserve the nullable citation contract and no-op retrieval boundary.
-- [ ] Implement keyboard/mobile behavior, safe text rendering, the data notice, and generation shutdown controls.
+- [x] Verify the three provider schemas, raw output access, completion/refusal handling, supported settings, cancellation, and usage; pin the working configuration and disable SDK retries.
+- [x] Implement versioned prompts, deterministic safety rules, constant templates, contextual classification, and separate output review.
+- [x] Connect calls to the existing turn lifecycle, validation, usage records, and atomic completion gates.
+- [x] Finish follow-ups, new chat, restored history, pending/unknown/failed states, retry, and input/history-limit feedback.
+- [x] Keep sources empty and the source limitation notice visible; preserve the nullable citation contract and no-op retrieval boundary.
+- [x] Implement keyboard/mobile behavior, safe text rendering, the data notice, and generation shutdown controls.
 
-**Authorities:** [Product](product-spec.md), [UX](ux-flow.md), [prompts](prompt-spec.md), [safety/security](safety-and-security.md), [API](api-contract.md), [Wise design reference](design-references/wise/DESIGN.md), and [preview](design-references/wise/preview.html).
+**Authorities:** [Product](product-spec.md), [UX](ux-flow.md), [prompts](prompt-spec.md), [safety/security](safety-and-security.md), and [API](api-contract.md). Original Wise assets remain preserved.
 
 **Deliverables:** Complete local assistant and browser-tested interaction flows.
 
 **Acceptance / definition of done:** A permitted question completes through the real provider, validation, safety review, and committed storage. Direct required exclusions return the correct boundary/referral. Failed classification/review stops safely. All phases use only the complete bounded active conversation, with the current question once. Refresh/retry/source states, mobile behavior, and keyboard interaction work. No unvalidated/uncommitted candidate is shown. Adapter probes and smoke results are recorded separately from full evaluation.
 
-**Verification:** Phase 1 checks, `npm run test:e2e`, targeted adapter/safety checks, and controlled live smoke calls. Record and verify supported chat widths using the existing design references; include manual keyboard/screen-reader review.
+**Verification:** Phase 1 checks, `npm run test:e2e`, targeted adapter/safety checks, and controlled live smoke calls. Record and verify supported chat widths using the current UX visual direction; include manual keyboard/screen-reader review. Presentation-only changes need no live model calls.
 
 **Risks:** Provider incompatibility, latency, truncation, and false refusals. Correct the implementation/configuration generally; do not weaken validation, skip review, or hardcode evaluation answers.
 
+**Implementation evidence, 11 October 2026:** [Groq adapter](../src/server/llm/groq.ts), [versioned bundle](../src/server/prompts/bundle.ts), [safety rules](../src/server/safety/rules.ts), [constant templates](../src/server/safety/templates.ts), [account budget](../src/server/llm/budget.ts), [additive migration](../migrations/0002_provider_budget.sql), and [local UI](../src/app/page.tsx). The user's key stays in ignored .env. The original migration/design assets/fixed questions are unchanged. [Testing](testing.md#phase-2-implementation-evidence) separates software, failed initial smoke, corrected smoke and remaining human review. [Operations](deployment-and-operations.md#phase-2-groq-local-operation) owns setup, shutdown and limits.
+
+**Remaining sign-off:** Actual keyboard-plus-screen-reader listening review (EC-UI-09) could not be performed through the available tooling. Keyboard behavior, ARIA structure and responsive screenshots have automated/visual evidence; they are not a substitute for that required review. Accordingly Phase 2 is not marked Done. Scoped Phase 3 sample capture is recorded in the classifier regression; independent factual review and the release browser matrix remain pending.
+
+**Frontend redesign, 11 October 2026:** Owner-authorized independent visual direction, interactive question starters, reduced-motion support and a compact **About this chat** information panel are implemented. Sources remain empty and accessible; routine completion banners are screen-reader-only. Build, 69 unit tests and 10 Chromium browser tests passed; [redesign evidence](testing.md#frontend-redesign-verification) records screenshot review and final narrow-screen verification. Saved data, provider quotas and model behavior are unchanged; no Groq calls were made. This does not close the human accessibility or broader release gates above.
+
 ### Phase 3 — Evaluation and release clearance
 
-**Status:** Not started. **Depends on:** Phase 2, frozen evaluation configuration, live-run budget, reviewer, and controlled artifact storage.
+**Status:** In progress for the owner-requested classifier regression; release clearance remains pending. **Depends on:** Phase 2, frozen evaluation configuration, live-run budget, reviewer, and controlled artifact storage.
 
 **Objective:** Establish the assignment's evidence baseline and clear required software, safety, privacy, and operating checks.
 
 **Tasks**
 
-- [ ] Implement a small runner through the ordinary app API; freeze exact `Q01`–`Q10` wording.
+- [x] Implement a small runner through the ordinary app API; freeze exact `Q01`–`Q10` wording.
 - [ ] Run the 39-turn baseline: ten core questions, three additional fresh `Q01` samples, and 26 safety/control turns. Run adopted policy extensions separately with recorded quota allocation and pacing.
 - [ ] Assemble dated authoritative references for human factual review, especially high-consequence food-safety claims. Keep them outside runtime M1 inputs.
-- [ ] Create `docs/failure-log.md` when actual runs begin; preserve responses, failures, versions, usage, grouped counts, and review findings.
+- [x] Create `docs/failure-log.md` when actual runs begin; preserve responses, failures, versions, usage, grouped counts, and review findings.
 - [ ] Fix release blockers generally and rerun required regression under a new recorded version; never overwrite adverse observations.
 - [ ] Complete browser/accessibility, security, cleanup, restart, and isolated restoration checks.
 - [ ] Finalize operating limits, notices, provider/hosting data settings, and deployment instructions.
@@ -190,9 +196,17 @@ Use checkboxes and short evidence notes in this plan. Task statuses are **Not st
 | Phase | Status | Completion evidence |
 | --- | --- | --- |
 | 1 — Durable local chat foundation | Done: locally built and tested | [Phase 1 evidence](testing.md#phase-1-implementation-evidence): 19 unit, 20 integration, 2 Chromium; clean install/build and launcher health passed |
-| 2 — Complete local assistant | Not started | None |
-| 3 — Evaluation and release clearance | Not started | None |
+| 2 — Complete local assistant | In progress: implemented; manual accessibility review pending | [Phase 2 evidence](testing.md#phase-2-implementation-evidence): Groq adapter/safety/UI, 58 unit, 38 integration, 10 Chromium tests; live probes and stored follow-up; screen-reader sign-off still required |
+| 3 — Evaluation and release clearance | In progress: scoped classifier regression | [Frozen runner and live run](evaluation.md#classifier-v2-regression); factual review and release clearance pending |
 | 4 — Deploy and verify | Not started | None |
+
+The subsequent [status and rate-limit repair](testing.md#status-and-rate-limit-repair-evidence) passed 61 unit, 45 integration and 9 Chromium tests (including all four viewport widths). It adds specific failure messages, durable cooldown and pre-acceptance quota checks. Original adverse observations remain in the failure log; this repair does not resolve the separate output-review diagnostic question or complete screen-reader sign-off.
+
+The owner-requested [temporary local diagnostic capture](testing.md#local-diagnostic-capture-evidence) subsequently passed 63 unit, 51 integration and 9 Chromium tests, additive upgrade and local startup. Capture is available for investigating new refusals/rejections, with expiring enablement and a separate private table. This adds evidence collection, not a classifier correction or Phase 3 live evaluation; the generalisation investigation and manual accessibility review remain outstanding.
+
+The subsequent owner-requested [classifier v2 correction](testing.md#classifier-v2-verification) aligns input, answer and review prompts on educational nutrient amounts, ordinary food preferences and independent questions after refusals. It retains the model, required exclusions, code checks and all safety/commit stages. Scripted verification passed 69 unit, 51 integration and 9 Chromium tests; the separate [live regression](evaluation.md#classifier-v2-regression) records model behavior and any budget-limited coverage. Historical adverse evidence remains preserved. Manual accessibility and factual release review are not complete.
+
+That live run completed the **39-turn baseline with all expected routes and stored results**, plus **5/29 adopted policy extensions**. The remaining **24 extensions** were not run because the next reservation would exceed the recorded test allocation. Usage was 87 calls / 128,366 tokens. This leaves the full-regression/release task open; neither stable sample numbers nor successful routing substitutes for authoritative factual review. The original local app resumed with generation enabled, diagnostic capture within its existing expiry window, and both health endpoints returning 200.
 
 Do not mark a phase done without its required verification. Preserve failed evaluations and distinguish blocked, partial, built, evaluated, and deployed work. Update the [progress record](project-documentation.md) after major steps, not every small edit.
 
@@ -204,3 +218,5 @@ Do not mark a phase done without its required verification. Preserve failed eval
 Record new ideas in the backlog. Promote them only after explicit scope approval, then update the owning requirements and relevant roadmap/plan entries without duplicating their purposes. Record changed decisions with date, reason, affected phase, and required re-verification.
 
 M2 remains required future direction from the assignment. M1 preserves the citation contract and evaluation baseline, but implements no retrieval. M2 needs its own retrieval decisions and execution update after the M1 baseline. M3 remains unapproved; neither backlog priority nor roadmap placement alone authorizes implementation.
+
+**Interactive animation follow-up, 11 October 2026:** pointer-responsive plate tilt, topic reveals, starter press/hover feedback and a composer selection pulse are implemented within the approved frontend scope. Build/check (69 unit tests) and all 10 Chromium flows passed, including reduced-motion and explicit-only submission checks. [Testing](testing.md#frontend-redesign-verification) owns evidence; no model calls were used.

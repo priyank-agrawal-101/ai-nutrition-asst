@@ -1,25 +1,30 @@
+﻿@font-face {
+  font-family: "Outfit";
+  src: url("/fonts/outfit-latin.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 :root {
-  --primary: #9fe870;
-  --ink: #0e0f0c;
-  --deep: #163300;
-  --body: #454745;
-  --soft: #e8ebe6;
-  --pale: #e2f6d5;
+  color-scheme: light;
+  --ink: #3b244d;
+  --body: #6e6078;
+  --canvas: #f6f3fa;
+  --lilac: #e6ddf3;
+  --mint: #d7eee3;
+  --apricot: #f6b66e;
 }
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
-  background: var(--soft);
+  background: var(--canvas);
   color: var(--ink);
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: "Outfit", "Trebuchet MS", sans-serif;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 button,
 textarea {
@@ -27,24 +32,23 @@ textarea {
 }
 button {
   cursor: pointer;
+  border: 0;
+  border-radius: 12px;
+  padding: 11px 20px;
+  color: white;
+  background: var(--ink);
+  font-weight: 500;
 }
 button:disabled {
-  cursor: default;
-  opacity: 0.55;
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 button:focus-visible,
 textarea:focus-visible,
-a:focus-visible {
-  outline: 3px solid var(--deep);
+a:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #82609d;
   outline-offset: 4px;
-}
-button {
-  border: 1px solid var(--deep);
-  border-radius: 24px;
-  padding: 10px 22px;
-  color: var(--deep);
-  background: var(--primary);
-  font-weight: 650;
 }
 p {
   margin: 0 0 14px;
@@ -55,12 +59,9 @@ h3 {
   line-height: 1.15;
 }
 textarea {
-  width: 100%;
-  resize: vertical;
-  min-height: 100px;
-  border: 1px solid #646b5e;
-  border-radius: 12px;
-  padding: 14px;
-  background: white;
+  color: var(--ink);
+}
+::selection {
+  background: var(--lilac);
   color: var(--ink);
 }

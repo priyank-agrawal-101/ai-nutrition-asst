@@ -30,6 +30,9 @@ export async function maintenance(
     z.object({ cutoff: dateValue.nullable() }),
   );
   await database.transaction("purge", async (db) => {
+    await db.execute(
+      sql`delete from model_diagnostics where expires_at<=clock_timestamp()`,
+    );
     const sessions = await rows(
       db,
       sql`select id from sessions where expires_at<=clock_timestamp() or revoked_at is not null order by id for update skip locked limit 100`,
@@ -39,6 +42,9 @@ export async function maintenance(
       const owned = sql`select a.id from attempts a join turns t on t.id=a.turn_id join conversations c on c.id=t.conversation_id where c.session_id=${s.id}`;
       await db.execute(
         sql`update generation_slots set attempt_id=null,leased_until=null where attempt_id in (${owned})`,
+      );
+      await db.execute(
+        sql`delete from model_diagnostics where attempt_id in (${owned})`,
       );
       await db.execute(
         sql`delete from provider_calls where attempt_id in (${owned})`,
@@ -56,6 +62,9 @@ export async function maintenance(
     }
     await db.execute(
       sql`delete from quota_buckets where expires_at<=clock_timestamp()`,
+    );
+    await db.execute(
+      sql`delete from provider_budget where started_at<=clock_timestamp()-interval '24 hours'`,
     );
   });
   sink({

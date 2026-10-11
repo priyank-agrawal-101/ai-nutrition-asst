@@ -1,0 +1,15 @@
+{
+    "sqltools.connections": [
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "127.0.0.1",
+            "port": 51262,
+            "driver": "PostgreSQL",
+            "name": "Gusto Local",
+            "database": "nutribite_local",
+            "username": "nutribite_local_runtime",
+            "password": "d1a57974c0c93bac8536bfe4b09d13f6898d64edf2da692a"
+        }
+    ]
+}

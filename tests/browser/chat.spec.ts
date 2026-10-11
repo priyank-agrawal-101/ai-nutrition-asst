@@ -1,4 +1,11 @@
 import { test, expect } from "@playwright/test";
+import {
+  conversationSchema,
+  envelope,
+  operationSchema,
+  sessionSchema,
+  type TurnView,
+} from "../../src/contracts/api";
 test.beforeEach(async ({ page, baseURL }) => {
   await page.route("**/*", async (route) => {
     if (new URL(route.request().url()).origin !== baseURL)
@@ -11,7 +18,10 @@ test("EC-UI-01 EC-REQ-04 stored answer survives refresh and dropped response", a
 }) => {
   await page.goto("/");
   await expect(page.getByLabel("Your question")).toBeEnabled();
-  await expect(page.getByText("LOCAL · SCRIPTED TEST MODE")).toBeVisible();
+  await expect(page.getByText("Scripted test mode")).toBeVisible();
+  await expect(
+    page.getByText("Local diagnostics are on:", { exact: false }),
+  ).toHaveCount(0);
   let submissions = 0;
   page.on("request", (r) => {
     if (r.method() === "POST" && r.url().endsWith("/turns")) submissions++;
@@ -37,12 +47,16 @@ test("EC-UI-01 EC-REQ-04 stored answer survives refresh and dropped response", a
       .filter({ hasText: "Synthetic browser storage question" }),
   ).toHaveCount(1);
   expect(submissions).toBe(1);
+  await page
+    .getByRole("button", { name: "About this chat", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Sources", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText("No sources available in this version."),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Close chat information" }).click();
   await page.getByRole("button", { name: "New chat", exact: true }).click();
   await expect(page.getByLabel("Your question")).toBeEnabled();
   await expect(
@@ -76,4 +90,481 @@ test("EC-SEC-08 EC-UI-02 keyboard, mobile layout and inert user text", async ({
     path: "test-results/phase1-chat.png",
     fullPage: true,
   });
+});
+
+test("EC-UI-03 composition, line breaks and Enter submit once", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const input = page.getByLabel("Your question");
+  await expect(input).toBeEnabled();
+  let submits = 0;
+  page.on("request", (r) => {
+    if (r.method() === "POST" && r.url().endsWith("/turns")) submits++;
+  });
+  await input.fill("A cooking question");
+  await input.dispatchEvent("keydown", {
+    key: "Enter",
+    code: "Enter",
+    isComposing: true,
+  });
+  expect(submits).toBe(0);
+  await input.press("End");
+  await input.press("Shift+Enter");
+  await expect(input).toHaveValue("A cooking question\n");
+  await input.press("Enter");
+  await expect(page.getByRole("status")).toHaveText("Response ready.");
+  await expect(page.getByRole("status")).toHaveCSS("clip-path", "inset(50%)");
+  expect(submits).toBe(1);
+  // Mock only the safe capability flag to inspect the privacy notice.
+  await page.route("**/api/v1/session", async (route) => {
+    const response = await route.fetch();
+    const body = envelope(sessionSchema).parse(
+      (await response.json()) as unknown,
+    );
+    if (!("data" in body)) throw Error("Expected session");
+    await route.fulfill({
+      response,
+      json: { ...body, data: { ...body.data, diagnostics_enabled: true } },
+    });
+  });
+  await page.reload();
+  await expect(
+    page.getByText("Private diagnostics on;", { exact: false }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "About this chat", exact: true })
+    .click();
+  await expect(
+    page.getByText("Local diagnostics are on:", { exact: false }),
+  ).toBeVisible();
+});
+
+test("EC-UI-07 EC-OPS-05 pre-acceptance quota preserves draft and waits for an explicit send", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.goto("/");
+  const input = page.getByLabel("Your question");
+  await expect(input).toBeEnabled();
+  let calls = 0;
+  const submissions: unknown[] = [];
+  let retryAfterSeconds = 2;
+  await page.route("**/api/v1/conversations/*/turns", async (route) => {
+    calls++;
+    submissions.push(route.request().postDataJSON() as unknown);
+    await route.fulfill({
+      status: 429,
+      contentType: "application/json",
+      headers: { "Retry-After": String(retryAfterSeconds) },
+      json: {
+        error: {
+          code: "PROVIDER_RATE_LIMITED",
+          message:
+            "The AI usage limit has been reached. Please wait before trying again.",
+          operation_state: "not_accepted",
+          field_errors: [],
+          recovery: {
+            action: "repeat_request",
+            conversation_id: null,
+            turn_id: null,
+            client_attempt_id: null,
+            client_submission_id: null,
+            retry_after_seconds: retryAfterSeconds,
+          },
+        },
+        meta: {
+          request_id: crypto.randomUUID(),
+          server_time: new Date().toISOString(),
+        },
+      },
+    });
+  });
+  await input.fill("Synthetic retained draft");
+  await input.press("Enter");
+  await expect(
+    page.getByText("The AI usage limit has been reached.", { exact: false }),
+  ).toBeVisible();
+  await expect(input).toHaveValue("Synthetic retained draft");
+  await expect(input).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Send", exact: true }),
+  ).toBeDisabled();
+  await input.press("Enter");
+  expect(calls).toBe(1);
+  await expect(page.getByText("Response ready.")).toHaveCount(0);
+  await page.clock.fastForward(3000);
+  await expect(
+    page.getByRole("button", { name: "Send", exact: true }),
+  ).toBeEnabled();
+  expect(calls).toBe(1);
+  await expect(input).toHaveValue("Synthetic retained draft");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(
+    page.getByText("The AI usage limit has been reached.", { exact: false }),
+  ).toBeVisible();
+  expect(calls).toBe(2);
+  expect(submissions[1]).toEqual(submissions[0]);
+  await page.clock.fastForward(3000);
+  retryAfterSeconds = 66998;
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect.poll(() => calls).toBe(3);
+  await expect(
+    page.getByText("The AI usage limit has been reached.", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/seconds before sending or retrying/),
+  ).toHaveCount(0);
+  await expect(page.getByText("66998", { exact: false })).toHaveCount(0);
+  await expect(input).toHaveValue("Synthetic retained draft");
+  await expect(input).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Send", exact: true }),
+  ).toBeDisabled();
+  await page.clock.fastForward(60000);
+  expect(calls).toBe(3);
+  await expect(
+    page.getByRole("button", { name: "Send", exact: true }),
+  ).toBeDisabled();
+  await page.clock.fastForward(66998000);
+  await expect(
+    page.getByRole("button", { name: "Send", exact: true }),
+  ).toBeEnabled();
+  expect(calls).toBe(3);
+});
+
+for (const limited of [false, true])
+  test(`EC-UI-07/08 mocked UI failure hides candidate and exposes explicit Retry (quota=${limited})`, async ({
+    page,
+  }) => {
+    if (limited) await page.clock.install();
+    await page.goto("/");
+    const input = page.getByLabel("Your question");
+    await expect(input).toBeEnabled();
+    let failed: TurnView | null = null,
+      showFailure = true;
+    await page.route("**/api/v1/conversations/*", async (route) => {
+      if (route.request().method() !== "GET" || !failed || !showFailure) {
+        await route.continue();
+        return;
+      }
+      const response = await route.fetch(),
+        body = envelope(conversationSchema).parse(
+          (await response.json()) as unknown,
+        );
+      if (!("data" in body)) throw Error("Expected synthetic conversation");
+      const value = {
+        ...body,
+        data: {
+          ...body.data,
+          turns: body.data.turns.map((t) => (t.id === failed?.id ? failed : t)),
+        },
+      };
+      envelope(conversationSchema).parse(value);
+      await route.fulfill({ response, json: value });
+    });
+    await page.route("**/api/v1/conversations/*/turns", async (route) => {
+      const response = await route.fetch(),
+        body = envelope(operationSchema).parse(
+          (await response.json()) as unknown,
+        );
+      if (!("data" in body)) throw Error("Expected synthetic operation");
+      failed = {
+        ...body.data.turn,
+        status: "failed",
+        assistant_message: null,
+        failure: {
+          code: limited ? "PROVIDER_RATE_LIMITED" : "OUTPUT_REJECTED",
+          message: "Couldn't complete the answer. Try again.",
+          retry_at: limited
+            ? new Date(Date.now() + 120000).toISOString()
+            : null,
+        },
+        retry: { allowed: true, reason: null, attempts_remaining: 2 },
+      };
+      const value = { ...body, data: { ...body.data, turn: failed } };
+      envelope(operationSchema).parse(value);
+      await route.fulfill({ response, json: value });
+    });
+    await page.route(
+      "**/api/v1/conversations/*/turns/*/attempts",
+      async (route) => {
+        showFailure = false;
+        await route.abort("failed"); // Unknown retry must recover through a read.
+      },
+    );
+    await input.fill("Synthetic UI failure question");
+    await input.press("Enter");
+    await expect(
+      page.getByRole("button", { name: "Retry", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Response ready.")).toHaveCount(0);
+    await expect(page.getByRole("status")).toContainText(
+      "Your question is saved, but no answer is ready.",
+    );
+    await expect(page.getByRole("status")).toHaveCSS("clip-path", "inset(50%)");
+    await expect(
+      page.getByText("This is a scripted local test response.", {
+        exact: false,
+      }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "About this chat", exact: true })
+      .click();
+    await expect(
+      page.getByText("No sources available in this version."),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Close chat information" }).click();
+    if (limited) {
+      await expect(
+        page.getByRole("button", { name: "Retry", exact: true }),
+      ).toBeDisabled();
+      await page.reload();
+      await expect(
+        page.getByRole("button", { name: "Retry", exact: true }),
+      ).toBeDisabled();
+      await expect(page.getByText("Response ready.")).toHaveCount(0);
+      await page.clock.fastForward(121000);
+      await expect(
+        page.getByRole("button", { name: "Retry", exact: true }),
+      ).toBeEnabled();
+    }
+    await page.getByRole("button", { name: "Retry", exact: true }).click();
+    await page.getByRole("button", { name: "Check again" }).click();
+    await expect(
+      page.getByText("This is a scripted local test response.", {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("article")
+        .filter({ hasText: "Synthetic UI failure question" }),
+    ).toHaveCount(1);
+  });
+
+test("EC-UI-11 reading position stays put and bottom tracking follows new messages", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const input = page.getByLabel("Your question");
+  await expect(input).toBeEnabled();
+  for (let i = 0; i < 3; i++) {
+    await input.fill(
+      `What should I weigh? ${"Synthetic detail. ".repeat(25)} ${i}`,
+    );
+    await input.press("Enter");
+    await expect(input).toHaveValue("");
+  }
+  const messages = page.getByRole("region", { name: "Messages", exact: true });
+  await messages.evaluate((el) => {
+    el.scrollTop = 0;
+    el.dispatchEvent(new Event("scroll"));
+  });
+  await input.fill("What should I weigh?");
+  await input.press("Enter");
+  await expect(input).toHaveValue("");
+  expect(await messages.evaluate((el) => el.scrollTop)).toBe(0);
+  await messages.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+    el.dispatchEvent(new Event("scroll"));
+  });
+  await input.fill("How many calories should I eat?");
+  await input.press("Enter");
+  await expect(input).toHaveValue("");
+  expect(
+    await messages.evaluate(
+      (el) => el.scrollHeight - el.clientHeight - el.scrollTop,
+    ),
+  ).toBeLessThan(5);
+});
+
+test("EC-UI-04 draft dialog keeps editing and failed creation preserves history", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const input = page.getByLabel("Your question");
+  await expect(input).toBeEnabled();
+  await input.fill("What should I weigh?");
+  await input.press("Enter");
+  await expect(
+    page.getByText("I can't recommend a weight target", { exact: false }),
+  ).toBeVisible();
+  await input.fill("Keep this draft");
+  await page.getByRole("button", { name: "New chat", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Keep editing" }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(input).toHaveValue("Keep this draft");
+  await page.getByRole("button", { name: "New chat", exact: true }).click();
+  await page.route("**/api/v1/conversations", (r) => r.abort("failed"));
+  await page.getByRole("button", { name: "Discard and start" }).click();
+  await expect(page.getByRole("button", { name: "Check again" })).toBeVisible();
+  await expect(
+    page.getByText("I can't recommend a weight target", { exact: false }),
+  ).toBeVisible();
+  await page.unroute("**/api/v1/conversations");
+  await page.getByRole("button", { name: "Check again" }).click();
+  await expect(input).toBeEnabled();
+  await expect(input).toHaveValue("");
+  await expect(page.getByRole("article")).toHaveCount(0);
+});
+
+test("EC-UI-07/08/10 one visitor views refusal, sources and wrapped input at 320/390/768/1280px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto("/");
+  const input = page.getByLabel("Your question");
+  await expect(input).toBeEnabled();
+  await input.fill("How many calories should I eat each day?");
+  await input.press("Enter");
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(
+      page.getByText("I can't recommend or calculate calorie targets.", {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Retry", exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "About this chat", exact: true })
+      .click();
+    await page
+      .getByRole("heading", { name: "Sources", exact: true })
+      .scrollIntoViewIfNeeded();
+    await expect(
+      page.getByText("No sources available in this version."),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Close chat information" }).click();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await input.fill("x".repeat(2001));
+    await expect(input).toHaveAttribute("aria-invalid", "true");
+    await expect(
+      page.getByRole("button", { name: "Send", exact: true }),
+    ).toBeDisabled();
+    await page.screenshot({
+      path: `test-results/phase2-${width}.png`,
+      fullPage: true,
+    });
+  }
+});
+
+test("EC-UI-02 EC-UI-07 starter questions, quiet notices and reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const input = page.getByLabel("Your question");
+  await expect(input).toBeEnabled();
+  let submissions = 0;
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/turns"))
+      submissions++;
+  });
+  await page.evaluate(() => document.fonts.ready);
+  for (const width of [320, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: `test-results/redesign-empty-${width}.png`,
+      fullPage: true,
+    });
+  }
+  const plate = page.locator('svg[viewBox="0 0 320 280"]');
+  await plate.hover({ position: { x: 40, y: 40 } });
+  await expect
+    .poll(() =>
+      plate.evaluate((element) => element.style.getPropertyValue("--plate-x")),
+    )
+    .not.toBe("");
+  await page.mouse.move(0, 0);
+  await expect
+    .poll(() =>
+      plate.evaluate((element) => element.style.getPropertyValue("--plate-x")),
+    )
+    .toBe("");
+  await page.getByRole("button", { name: "Food safety", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Food safety", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByRole("button", {
+      name: "How should I store leftover rice safely?",
+      exact: true,
+    })
+    .click();
+  await expect(input).toHaveValue("How should I store leftover rice safely?");
+  await expect(input).toBeFocused();
+  expect(
+    await input.evaluate(
+      (element) => element.closest("form")?.getAnimations().length ?? 0,
+    ),
+  ).toBeGreaterThan(0);
+  await expect(
+    page.getByRole("button", {
+      name: "Can I refreeze food after thawing it?",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  expect(submissions).toBe(0);
+  const about = page.getByRole("button", {
+    name: "About this chat",
+    exact: true,
+  });
+  await about.click();
+  await expect(
+    page.getByRole("button", { name: "Close chat information" }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole("heading", { name: "Sources", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "test-results/redesign-about.png",
+    fullPage: true,
+  });
+  // Native modal inertness must prevent programmatic focus on the background.
+  await input.evaluate((element) => element.focus());
+  await expect(
+    page.getByRole("button", { name: "Close chat information" }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(about).toBeFocused();
+  await expect(input).toHaveValue("How should I store leftover rice safely?");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await plate.hover({ position: { x: 40, y: 40 } });
+  await expect(plate).toHaveCSS("transform", "none");
+  await expect
+    .poll(() =>
+      plate.evaluate((element) => element.style.getPropertyValue("--plate-x")),
+    )
+    .toBe("");
+  await input.fill("");
+  await page
+    .getByRole("button", {
+      name: "Can I refreeze food after thawing it?",
+      exact: true,
+    })
+    .click();
+  await expect(input).toHaveValue("Can I refreeze food after thawing it?");
+  expect(
+    await input.evaluate(
+      (element) => element.closest("form")?.getAnimations().length ?? 0,
+    ),
+  ).toBe(0);
+  await expect(page.locator("svg g").first()).toHaveCSS(
+    "animation-name",
+    "none",
+  );
+  expect(submissions).toBe(0);
 });

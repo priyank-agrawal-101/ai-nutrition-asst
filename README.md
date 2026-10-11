@@ -8,9 +8,9 @@ An AI-powered nutrition assistant in development for India-first everyday adults
 
 The [problem statement](docs/problemStatement.md) remains the source of truth for product scope. [Product positioning](docs/product-positioning.md) defines the selected brand and its communication; the supplied brand reference does not add features. The technical project folder and repository remain `ai-nutrition-asst`.
 
-## Run the Phase 1 local foundation
+## Run the local assistant
 
-Phase 1 now has a Next.js application, PostgreSQL persistence, strict API contracts, anonymous sessions, explicit retries, recovery, quotas, and automatic cleanup. It returns **scripted test responses only**. Real nutrition answers, model safety policies, evaluation, and public deployment belong to later phases.
+The local assistant has PostgreSQL chat persistence, anonymous sessions, recovery, safety gates and Groq-backed structured answers. Configure the ignored `.env` with `PROVIDER_MODE=groq` and `GROQ_API_KEY`. The selected model is **openai/gpt-oss-120b**. Use `PROVIDER_MODE=scripted` for offline tests. Full factual evaluation and public deployment remain later phases.
 
 Use Node **24.14.0** and npm **11.11.0** (see [.node-version](.node-version) and [package.json](package.json)):
 
@@ -22,7 +22,7 @@ npm run dev
 
 The launcher prints a free loopback URL, provisions PostgreSQL 17 inside this project, applies the reviewed migration, and keeps local data in ignored `.tmp/local/`. Subsequent launches reuse that data and the same origin. Ctrl+C stops only its app and database. Despite the `dev` command name, this launcher serves the production build; rebuild after changing application code. Do not remove `.tmp/local/` to repair a build.
 
-Run `npm run check` and `npm run test:integration` for software verification. The integration harness creates and removes its own marked database; it never falls back to the local application database. Browser setup and evidence are in [testing](docs/testing.md#phase-1-implementation-evidence). Configuration and operating commands are in [operations](docs/deployment-and-operations.md#phase-1-local-operation). No provider account or credential is needed.
+Run `npm run check` and `npm run test:integration` for software verification. The integration harness creates and removes its own marked database; it never falls back to the local application database. Browser setup and evidence are in [testing](docs/testing.md#phase-2-implementation-evidence). Configuration and operating commands are in [operations](docs/deployment-and-operations.md#phase-2-groq-local-operation). Ordinary software tests need no provider key. Stop this project's running app before reinstalling dependencies on Windows; keep `.tmp/local/`.
 
 ## Documentation approach
 
@@ -37,32 +37,32 @@ The order below is a reading map, not a mandatory document-production queue. Cre
 | 1 | [docs/problemStatement.md](docs/problemStatement.md) | Project brief and milestone goals. | Created |
 | 2 | [Product positioning and brand guidelines](docs/product-positioning.md) | Positioning, audience/personas, name and meaning, tagline, brand promise, voice, copy style, and business direction. | Created; strategy draft |
 | 3 | [docs/product-spec.md](docs/product-spec.md) | Required behavior, scope, and acceptance checks. | Adopted M1 baseline |
-| 4 | [docs/ux-flow.md](docs/ux-flow.md) | User steps, conversation states, and error handling. | Phase 1 minimal local interface |
-| 5 | [docs/architecture.md](docs/architecture.md) | Technology choices, app parts, and how they connect. | Phase 1 foundation implemented |
-| 6 | [docs/api-contract.md](docs/api-contract.md) | Endpoints, request/response formats, validation, and errors. | v1 implemented with scripted provider |
-| 7 | [docs/data-model.md](docs/data-model.md) | Stored data, relationships, and database changes. | Initial PostgreSQL migration implemented |
-| 8 | [docs/safety-and-security.md](docs/safety-and-security.md) | Safety, privacy, access, and abuse prevention. | Adopted baseline; controls unverified |
-| 9 | [Wise design reference](docs/design-references/wise/DESIGN.md) + [HTML preview](docs/design-references/wise/preview.html) | Existing visual starting point for chat appearance, components, and responsive presentation. | Present; adapt and verify during UI implementation |
+| 4 | [docs/ux-flow.md](docs/ux-flow.md) | User steps, conversation states, and error handling. | Phase 2 local interface; manual accessibility review pending |
+| 5 | [docs/architecture.md](docs/architecture.md) | Technology choices, app parts, and how they connect. | Phase 2 Groq/safety implementation |
+| 6 | [docs/api-contract.md](docs/api-contract.md) | Endpoints, request/response formats, validation, and errors. | v1 implemented with Groq and safe session metadata |
+| 7 | [docs/data-model.md](docs/data-model.md) | Stored data, relationships, and database changes. | Initial and additive PostgreSQL migrations verified |
+| 8 | [docs/safety-and-security.md](docs/safety-and-security.md) | Safety, privacy, access, and abuse prevention. | Local safety checks passed; release review pending |
+| 9 | [Wise design reference](docs/design-references/wise/DESIGN.md) + [HTML preview](docs/design-references/wise/preview.html) | Preserved original reference assets; current design lives in UX and application CSS. | Superseded by owner-authorized frontend redesign |
 | 10 | [docs/prompt-spec.md](docs/prompt-spec.md) | Instructions, templates, context, and prompt change reasons. | Adopted baseline; not evaluated |
-| 11 | [docs/edge-cases.md](docs/edge-cases.md) | Central scenario catalogue, with M1, deferred, and M2 applicability. | Selected Phase 1 variants tested; see coverage map |
+| 11 | [docs/edge-cases.md](docs/edge-cases.md) | Central scenario catalogue, with M1, deferred, and M2 applicability. | Selected Phase 1/2 variants tested; see coverage map |
 | 12 | [docs/evaluation.md](docs/evaluation.md) | Ten questions, safety selection, scoring, consistency, and comparisons. | Method adopted; evaluation not run |
-| 13 | [docs/testing.md](docs/testing.md) | Test layers, isolation, faults, command/CI contract, and evidence. | Runnable checks and Phase 1 evidence |
+| 13 | [docs/testing.md](docs/testing.md) | Test layers, isolation, faults, command/CI contract, and evidence. | Runnable checks and Phase 1/2 evidence |
 | 14 | [docs/code-conventions.md](docs/code-conventions.md) | Code style, imports, schemas, parsing, and dependency discipline. | Implementation baseline |
 | 15 | [docs/token-optimization-and-efficiency.md](docs/token-optimization-and-efficiency.md) | Reducing model usage, cost, response time, and repeated work. | Initial guidance |
-| 16 | [docs/phase-wise-implementation-plan.md](docs/phase-wise-implementation-plan.md) | Four delivery phases, dependencies, completion criteria, and evidence tracking. | Phase 1 implemented; verification recorded in plan |
+| 16 | [docs/phase-wise-implementation-plan.md](docs/phase-wise-implementation-plan.md) | Four delivery phases, dependencies, completion criteria, and evidence tracking. | Phase 2 implemented; sign-off gap recorded in plan |
 | 17 | [AGENTS.md](AGENTS.md) | Short authority map, project boundaries, and planned/verified commands. | Created; implementation guidance |
-| 18 | [docs/deployment-and-operations.md](docs/deployment-and-operations.md) | Environments, hosting, settings, health, maintenance, and recovery. | Initial guidance; operating commands and controls unverified |
+| 18 | [docs/deployment-and-operations.md](docs/deployment-and-operations.md) | Environments, hosting, settings, health, maintenance, and recovery. | Local setup verified; public operation pending |
 | 19 | [docs/feature-backlog.md](docs/feature-backlog.md) | Future ideas awaiting explicit scope decisions. | FB-001 manual deletion deferred |
-| 20 | [docs/product-roadmap.md](docs/product-roadmap.md) | M1/M2 product direction, milestone outcomes, and unresolved future scope. | Initial roadmap; delivery not started |
+| 20 | [docs/product-roadmap.md](docs/product-roadmap.md) | M1/M2 product direction, milestone outcomes, and unresolved future scope. | Proposed direction; implementation plan owns progress |
 | 21 | [Problem-statement comparison](docs/problem-statement-alignment.md) | Simple assignment-to-plan coverage, approved additions, and complexity boundaries. | Documentation audit; no implementation evidence |
 
 [Project documentation: behind the scenes](docs/project-documentation.md) is the short record of our approach, completed steps, and lessons for demos and future projects. It is a progress record, not another specification.
 
-Create `docs/failure-log.md` when evaluations start. It holds actual results using the method in `evaluation.md`; it is also separate from the foundation documents.
+[The failure log](docs/failure-log.md) preserves Phase 2 failures and corrections. Current live evidence is a compatibility smoke check; the full evaluation remains pending.
 
 ## Design documents and previews
 
-Use the existing design files below directly for M1, as confirmed by the owner. A new `design-guide.md`/preview pair is not a prerequisite or a separate documentation task. Record necessary chat-specific choices in UX/testing and implemented tokens; verify the actual UI at desktop/mobile widths, including focus, contrast, reading, and error/source states.
+On 11 October 2026 the owner requested a new frontend design independent of Wise, with motion, interactive starters and less prominent notices. [UX](docs/ux-flow.md#visual-direction-and-information-hierarchy) owns the new direction; implementation uses self-hosted Outfit, plum/lilac/mint colours and a food illustration. **About this chat** contains Sources and detailed privacy/diagnostic information. A new `design-guide.md`/preview pair is not needed. Verify the actual UI at desktop/mobile widths, including focus, contrast, reading and error/source states.
 
 If a distinct Design Guide is explicitly requested later, pair it with an HTML preview and keep both aligned. The existing reference preview already provides an offline viewing option and print styles; it is not an additional launch dependency.
 
@@ -71,7 +71,7 @@ Current design references:
 - [Wise design reference](docs/design-references/wise/DESIGN.md): the imported getdesign reference, preserved as source material.
 - [Wise visual preview](docs/design-references/wise/preview.html): an interactive, offline companion with colours, type, components, and illustrative Gusto NutriBite adaptations. Open the file in a browser; use **Print / save PDF** for a printable view.
 
-The Wise files are the visual starting point for implementation, not proof of application behavior or accessibility. Adapt them to Gusto NutriBite's chat and preserve the source assets. Pricing, authentication, and other illustrative reference surfaces do not expand product scope.
+The Wise files are preserved historical references, not the active visual direction or proof of application behavior/accessibility. Pricing, authentication and other illustrative reference surfaces do not expand product scope.
 
 ## Files to keep out of Git
 
@@ -99,19 +99,27 @@ Apply these rules to every project document and instruction:
 
 Keep the original [problemStatement.txt](docs/problemStatement.txt) as the source. Its Markdown version may simplify the wording while preserving the brief.
 
-Add local setup instructions here when the app exists. Link to the prompt, response schema, prompt changes, safety enforcement, and chosen stack in their own documents.
+Local setup is above. Prompt, response schema, safety and stack details remain in their owning documents.
 
 ## Next build decisions
 
-The [implementation plan](docs/phase-wise-implementation-plan.md) records Phase 1 progress and evidence. The next implementation boundary is Phase 2: verify a real provider and implement the adopted safety pipeline and complete UI. There is no live evaluation or public deployment yet.
+The [implementation plan](docs/phase-wise-implementation-plan.md) records Phase 2 implementation and the classifier-v2 correction. Its [live baseline](docs/evaluation.md#classifier-v2-regression) passed 39/39 route/persistence checks; policy extensions are partial (5/29). Independent factual/accessibility review, full regression and public deployment remain pending.
 
 | Work boundary | Decision or evidence needed | Authoritative home |
 | --- | --- | --- |
 | Scaffold and persistence | Phase 1 implementation and test evidence are linked from the plan. Continue preserving stored data and recovery guarantees. | [Implementation plan](docs/phase-wise-implementation-plan.md) and [testing](docs/testing.md#phase-1-implementation-evidence). |
-| Real model integration | Verify native schema support, raw-output/completion handling, effective settings, and account access with an isolated adapter harness; then evaluate through the ordinary app pipeline. | [Provider adapter](docs/architecture.md#provider-adapter). |
-| Adopted safety behavior | Implement/test accepted policies and permitted controls; keep brief exclusions fixed. | [Safety handoff](docs/safety-and-security.md#12-decisions-and-implementation-handoff). |
-| Visitor data | Implement expiry/revocation and automatic cleanup; verify notices/provider/backup retention. Manual deletion is deferred, not a blocking contract gap. | [Privacy boundary](docs/api-contract.md#privacy-implementation-boundary). |
-| Chat appearance and accessibility | Use existing Wise reference/preview; record and verify product-specific choices during UI implementation. | [Design files](#design-documents-and-previews), [UX](docs/ux-flow.md), and [testing](docs/testing.md). |
+| Real model integration | Native schemas and ordinary API smoke checks passed. Run the full fixed-question evaluation through the app pipeline in Phase 3. | [Provider adapter](docs/architecture.md#provider-adapter). |
+| Adopted safety behavior | Local controls are implemented and tested. Complete safety evaluation and release review while keeping brief exclusions fixed. | [Safety handoff](docs/safety-and-security.md#12-decisions-and-implementation-handoff). |
+| Visitor data | Local expiry/revocation and cleanup are tested. Verify deployed retention and backups before public delivery. Manual deletion remains deferred. | [Privacy boundary](docs/api-contract.md#privacy-implementation-boundary). |
+| Chat appearance and accessibility | Responsive and keyboard checks passed. Complete actual screen-reader review and the release browser matrix. | [Design files](#design-documents-and-previews), [UX](docs/ux-flow.md), and [testing](docs/testing.md). |
 | Live operation | Confirm budget, retention, hosting behaviour, and recovery evidence before public traffic. | [Operations guidance](docs/deployment-and-operations.md) and [safety release review](docs/safety-and-security.md#release-review). |
 
 Prerequisites block their affected phase, not every independent task. The linked owners retain exact values and acceptance rules. Existing design files are included in the plan; no duplicate guide is required. Backlog ideas and M2/M3 roadmap entries do not enter M1 without an explicit scope decision.
+
+## Phase 2: local Groq assistant
+
+Use Node 24/npm 11. Run npm ci, npm run build, then npm run dev. Configure the ignored project .env with PROVIDER_MODE=groq and GROQ_API_KEY; the local launcher preserves existing chats. The selected model is **openai/gpt-oss-120b**, called through Groq only. No OpenAI or Anthropic key is needed.
+
+The app uses separate input classification, structured generation and output review, with code-authored refusals for clear exclusions. Sources remain empty in M1. The account limits are enforced at 30 requests/minute, 1,000/day, 8,000 total tokens/minute and 200,000/day. No automatic model retries occur.
+
+Pause/resume local generation with npm run generation:off / npm run generation:on. See [operations](docs/deployment-and-operations.md#phase-2-groq-local-operation), [testing evidence](docs/testing.md#phase-2-implementation-evidence), and [the plan](docs/phase-wise-implementation-plan.md). Deliberate npm run smoke:groq makes real calls using synthetic data; ordinary tests remain offline from Groq.

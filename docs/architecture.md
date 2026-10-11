@@ -32,7 +32,7 @@ Build one Next.js application with server modules separated by responsibility. U
 | --- | --- | --- |
 | Language and runtime | TypeScript in strict mode; a supported Node.js LTS release | Shared types across the app, with runtime validation at trust boundaries. Pin compatible versions during scaffolding. |
 | Web application | Next.js App Router, React, and Node-runtime route handlers | One project serves the chat and API. Use ordinary HTTP handlers for the stable API. |
-| Styling | CSS Modules and shared CSS variables | Adapt the existing [Wise reference](design-references/wise/DESIGN.md) and [preview](design-references/wise/preview.html); record product-specific decisions during UI implementation. |
+| Styling | CSS Modules and shared CSS variables | Follow the owner-authorized [UX visual direction](ux-flow.md#visual-direction-and-information-hierarchy); preserve the original Wise assets. Self-hosted Outfit, inline SVG and CSS motion require no external runtime services. |
 | Runtime schemas | Zod, with a tested JSON Schema conversion for the provider | Validate incoming requests and outgoing content. TypeScript types alone cannot validate external data. |
 | Database | PostgreSQL in local development, tests, and production | Transactions and constraints support ownership, ordering, and duplicate prevention. Use a dedicated local database; do not use another project's database. |
 | Database access | Drizzle ORM and versioned SQL migrations | Keep normal queries typed while allowing explicit locking and database constraints. |
@@ -213,7 +213,7 @@ If the database is unavailable, status remains unknown in the browser. Offer Che
 
 ### Content contract
 
-The [API contract](api-contract.md#answer-content-and-citation-schema) owns the adopted content schema, citation fields, string limits, identifier rules, and allowed URL schemes. Its [resource schemas](api-contract.md#messages-attempts-and-turns) keep conversation, turn, attempt, status, response kind, and error metadata separate from answer content. Materialize and test these schemas; they are not implemented yet.
+The [API contract](api-contract.md#answer-content-and-citation-schema) owns the adopted content schema, citation fields, string limits, identifier rules, and allowed URL schemes. Its [resource schemas](api-contract.md#messages-attempts-and-turns) keep conversation, turn, attempt, status, response kind, and error metadata separate from answer content. These schemas are implemented in [the runtime contracts](../src/contracts/api.ts) and exercised by the software suites.
 
 The generator produces content; server code controls request status and response kind. Errors do not masquerade as successful assistant content. Do not generate citation placeholders in Milestone 1.
 
@@ -288,7 +288,11 @@ Before choosing an exact model:
 4. Pin explicit model identifiers and supported settings. Record unavailable or provider-controlled settings as such; do not assume temperature or seed controls exist.
 5. Confirm provider data-retention settings and account limits before using real visitor messages.
 
-The first provider candidate is not a validated model selection. Consult the [official OpenAI structured-output guide](https://developers.openai.com/api/docs/guides/structured-outputs) during implementation. Live documentation retrieval was unavailable while drafting this document; endpoint syntax and current model compatibility remain unverified. No API call or credential is needed to review this architecture.
+Phase 2 selects **Groq / openai/gpt-oss-120b** at the owner's request. Official [models](https://console.groq.com/docs/models), [strict structured output](https://console.groq.com/docs/structured-outputs), [reasoning](https://console.groq.com/docs/reasoning), and [data controls](https://console.groq.com/docs/your-data) were read on 11 October 2026. GPT-OSS 120B supports strict schemas and a 131,072-token context; use `include_reasoning: false`, not the unsupported GPT-OSS `reasoning_format` setting. [Adapter](../src/server/llm/groq.ts), [native schemas](../src/server/llm/schemas.ts), [request assembly](../src/server/llm/request.ts), and [settings](../src/server/llm/settings.ts) own executable behaviour. No OpenAI or Anthropic endpoint/key is used. No fallback model is selected automatically.
+
+The user-reported account limits are 30 requests/minute, 1,000/day, 8,000 total tokens/minute and 200,000/day. [Budget reservations](../src/server/llm/budget.ts) serialize concurrent dispatch and enforce rolling 60-second/24-hour windows in PostgreSQL, across restarts. Reserve serialized-request tokens plus 128 framing tokens and maximum completion tokens, then reconcile reported input+output; retain a full reservation when usage is unknown. This app cannot observe another application's use of the same Groq account. Daily operator limits may only lower the account caps. Exhaustion fails safely with no queued automatic retry or skipped review.
+
+GPT-OSS's o200k merge vocabulary is counted with pinned js-tiktoken 1.0.21; Harmony/schema overhead has a separate 128-token reserve. Probes compare observed input with this bound. The existing 8,000-byte conservative conversation bound remains; worst-case candidate JSON plus phase instructions/schema/output must also fit the model window. [Testing](testing.md#phase-2-implementation-evidence) distinguishes verified samples from a general tokenizer/provider guarantee.
 
 ### Initial configuration defaults
 
@@ -301,7 +305,7 @@ These are adopted starting limits to validate against the selected model and dep
 | Conversation context | At most 20 accepted user turns and 8,000 conversation tokens | Whichever limit is reached first. Whole-context policy applies to every model phase. |
 | Answer text / claims | At most 6,000 Unicode code points, 20 claims, and 600 code points per claim | Runtime acceptance limits; normal answers should be shorter. |
 | Generation output | 2,000 provider output tokens initially | Includes the structured answer and claims. Adjust for the chosen model's output/reasoning accounting. Reject truncation. |
-| Safety verdict output | 256 provider output tokens per verdict initially | Small schema with no free-form rationale. Increase if the verified model requires more; never accept partial verdicts. |
+| Safety verdict output | 256 provider output tokens per verdict for Groq GPT-OSS | Small schema with no free-form rationale. Includes internal reasoning; never accept partial verdicts. |
 | Provider phase timeout | 10 seconds input classification, 25 seconds generation, 10 seconds output review | Each call uses the smaller of its phase limit and the remaining shared budget. |
 | Shared model-call budget | 45 seconds per attempt | Covers all calls; no automatic regeneration or SDK retries. |
 | Attempt completion deadline | 60 seconds from database acceptance | Includes model work, validation, and final commit. Completion uses a database-time check. |
@@ -350,6 +354,8 @@ This section defines technical boundaries. The draft [safety and security docume
 - Send only the necessary conversation context to the chosen provider. Provide the approved user notice before collecting messages. Do not request medical records or a nutrition profile.
 - Production logs contain request IDs, phases, safe error codes, timings, versions, and available token usage. Exclude raw cookies, authorization headers, prompts, transcripts, and provider response bodies by default.
 - Keep synthetic evaluation inputs and approved run artifacts separate from real visitor data. Failed candidate capture requires explicit access and retention rules; do not dump it into general logs or Git.
+
+The owner-authorized [local diagnostics facility](data-model.md#temporary-local-model-diagnostics) observes returned model message content without modifying it, then saves selected terminal outcomes separately from chat messages. It is local-only, expiring and best effort; capture failure never changes an attempt outcome. Prompt/model behavior and public answer validation remain unchanged. The only public addition is a safe capability flag for the privacy notice.
 - Rate-limit session creation and reads as well as generation to reduce anonymous abuse. Rate-limit failures must not trigger automatic retries.
 
 No public evaluator endpoint, debugging route with transcripts, or browser database credential is part of the prototype.
@@ -452,7 +458,7 @@ Follow the approved [implementation plan](phase-wise-implementation-plan.md) and
 | --- | --- | --- |
 | Tooling and database | Stack selected; compatible versions and isolated PostgreSQL not provisioned. | Database integration |
 | Provider/model | OpenAI first candidate; exact account, endpoint, model, settings, schemas, privacy, and call budget unverified. | Live integration |
-| Visual system | Existing Wise reference/preview selected as the UI starting point; adapt and verify chat-specific details without creating duplicate design documents. | During UI implementation |
+| Visual system | Owner-authorized redesign supersedes Wise styling; UX and shared tokens own presentation. Verify chat states without creating duplicate design documents. | During UI implementation |
 | Evaluation | Method and questions exist; executable snapshot, references, reviewer, artifacts, and funded run remain outstanding. | Live evaluation |
 | Operating evidence | Initial limits/retention adopted; verify actual hosting behavior, spend/alerts, notices, operator/contact, and recovery. | Public operation |
 

@@ -8,6 +8,22 @@ An AI-powered nutrition assistant in development for India-first everyday adults
 
 The [problem statement](docs/problemStatement.md) remains the source of truth for product scope. [Product positioning](docs/product-positioning.md) defines the selected brand and its communication; the supplied brand reference does not add features. The technical project folder and repository remain `ai-nutrition-asst`.
 
+## Run the Phase 1 local foundation
+
+Phase 1 now has a Next.js application, PostgreSQL persistence, strict API contracts, anonymous sessions, explicit retries, recovery, quotas, and automatic cleanup. It returns **scripted test responses only**. Real nutrition answers, model safety policies, evaluation, and public deployment belong to later phases.
+
+Use Node **24.14.0** and npm **11.11.0** (see [.node-version](.node-version) and [package.json](package.json)):
+
+```sh
+npm ci
+npm run build
+npm run dev
+```
+
+The launcher prints a free loopback URL, provisions PostgreSQL 17 inside this project, applies the reviewed migration, and keeps local data in ignored `.tmp/local/`. Subsequent launches reuse that data and the same origin. Ctrl+C stops only its app and database. Despite the `dev` command name, this launcher serves the production build; rebuild after changing application code. Do not remove `.tmp/local/` to repair a build.
+
+Run `npm run check` and `npm run test:integration` for software verification. The integration harness creates and removes its own marked database; it never falls back to the local application database. Browser setup and evidence are in [testing](docs/testing.md#phase-1-implementation-evidence). Configuration and operating commands are in [operations](docs/deployment-and-operations.md#phase-1-local-operation). No provider account or credential is needed.
+
 ## Documentation approach
 
 Write documentation to reduce ambiguity before coding, not to complete a target number of files. Give each topic one authoritative home and link to it. Work on related documents together when their responsibilities are distinct; merge or omit material that would repeat existing decisions. Use this README as the index and decision entry point. Reuse useful parts of this foundation for future projects, including product positioning and brand guidelines, at the detail the project needs.
@@ -21,19 +37,19 @@ The order below is a reading map, not a mandatory document-production queue. Cre
 | 1 | [docs/problemStatement.md](docs/problemStatement.md) | Project brief and milestone goals. | Created |
 | 2 | [Product positioning and brand guidelines](docs/product-positioning.md) | Positioning, audience/personas, name and meaning, tagline, brand promise, voice, copy style, and business direction. | Created; strategy draft |
 | 3 | [docs/product-spec.md](docs/product-spec.md) | Required behavior, scope, and acceptance checks. | Adopted M1 baseline |
-| 4 | [docs/ux-flow.md](docs/ux-flow.md) | User steps, conversation states, and error handling. | Adopted behavior; not built |
-| 5 | [docs/architecture.md](docs/architecture.md) | Technology choices, app parts, and how they connect. | Stack and baseline selected; not built |
-| 6 | [docs/api-contract.md](docs/api-contract.md) | Endpoints, request/response formats, validation, and errors. | Adopted contract; not implemented |
-| 7 | [docs/data-model.md](docs/data-model.md) | Stored data, relationships, and database changes. | Adopted baseline; no database |
+| 4 | [docs/ux-flow.md](docs/ux-flow.md) | User steps, conversation states, and error handling. | Phase 1 minimal local interface |
+| 5 | [docs/architecture.md](docs/architecture.md) | Technology choices, app parts, and how they connect. | Phase 1 foundation implemented |
+| 6 | [docs/api-contract.md](docs/api-contract.md) | Endpoints, request/response formats, validation, and errors. | v1 implemented with scripted provider |
+| 7 | [docs/data-model.md](docs/data-model.md) | Stored data, relationships, and database changes. | Initial PostgreSQL migration implemented |
 | 8 | [docs/safety-and-security.md](docs/safety-and-security.md) | Safety, privacy, access, and abuse prevention. | Adopted baseline; controls unverified |
 | 9 | [Wise design reference](docs/design-references/wise/DESIGN.md) + [HTML preview](docs/design-references/wise/preview.html) | Existing visual starting point for chat appearance, components, and responsive presentation. | Present; adapt and verify during UI implementation |
 | 10 | [docs/prompt-spec.md](docs/prompt-spec.md) | Instructions, templates, context, and prompt change reasons. | Adopted baseline; not evaluated |
-| 11 | [docs/edge-cases.md](docs/edge-cases.md) | Central scenario catalogue, with M1, deferred, and M2 applicability. | Cases not run |
+| 11 | [docs/edge-cases.md](docs/edge-cases.md) | Central scenario catalogue, with M1, deferred, and M2 applicability. | Selected Phase 1 variants tested; see coverage map |
 | 12 | [docs/evaluation.md](docs/evaluation.md) | Ten questions, safety selection, scoring, consistency, and comparisons. | Method adopted; evaluation not run |
-| 13 | [docs/testing.md](docs/testing.md) | Test layers, isolation, faults, command/CI contract, and evidence. | Baseline; checks not implemented |
+| 13 | [docs/testing.md](docs/testing.md) | Test layers, isolation, faults, command/CI contract, and evidence. | Runnable checks and Phase 1 evidence |
 | 14 | [docs/code-conventions.md](docs/code-conventions.md) | Code style, imports, schemas, parsing, and dependency discipline. | Implementation baseline |
 | 15 | [docs/token-optimization-and-efficiency.md](docs/token-optimization-and-efficiency.md) | Reducing model usage, cost, response time, and repeated work. | Initial guidance |
-| 16 | [docs/phase-wise-implementation-plan.md](docs/phase-wise-implementation-plan.md) | Four delivery phases, dependencies, completion criteria, and evidence tracking. | Approved; implementation not started |
+| 16 | [docs/phase-wise-implementation-plan.md](docs/phase-wise-implementation-plan.md) | Four delivery phases, dependencies, completion criteria, and evidence tracking. | Phase 1 implemented; verification recorded in plan |
 | 17 | [AGENTS.md](AGENTS.md) | Short authority map, project boundaries, and planned/verified commands. | Created; implementation guidance |
 | 18 | [docs/deployment-and-operations.md](docs/deployment-and-operations.md) | Environments, hosting, settings, health, maintenance, and recovery. | Initial guidance; operating commands and controls unverified |
 | 19 | [docs/feature-backlog.md](docs/feature-backlog.md) | Future ideas awaiting explicit scope decisions. | FB-001 manual deletion deferred |
@@ -87,11 +103,11 @@ Add local setup instructions here when the app exists. Link to the prompt, respo
 
 ## Next build decisions
 
-The [implementation plan](docs/phase-wise-implementation-plan.md) is created and approved; the [assignment comparison](docs/problem-statement-alignment.md) makes scope coverage and additions easy to review. [Agent guidance](AGENTS.md) and the [initial operations baseline](docs/deployment-and-operations.md) are now present. Next begin Phase 1, pinning compatible tooling and establishing an isolated database. No app, runnable npm scripts, tests, evaluation, or deployment exists yet.
+The [implementation plan](docs/phase-wise-implementation-plan.md) records Phase 1 progress and evidence. The next implementation boundary is Phase 2: verify a real provider and implement the adopted safety pipeline and complete UI. There is no live evaluation or public deployment yet.
 
 | Work boundary | Decision or evidence needed | Authoritative home |
 | --- | --- | --- |
-| Scaffold and persistence | Stack selected. Pin compatible versions, establish isolated PostgreSQL, and materialize v1 contracts. A fake provider supports independent local development. | [Architecture dependencies](docs/architecture.md#implementation-dependencies), [API contract](docs/api-contract.md#contract-stability), and [conventions](docs/code-conventions.md#2-typescript-tooling-and-source-style). |
+| Scaffold and persistence | Phase 1 implementation and test evidence are linked from the plan. Continue preserving stored data and recovery guarantees. | [Implementation plan](docs/phase-wise-implementation-plan.md) and [testing](docs/testing.md#phase-1-implementation-evidence). |
 | Real model integration | Verify native schema support, raw-output/completion handling, effective settings, and account access with an isolated adapter harness; then evaluate through the ordinary app pipeline. | [Provider adapter](docs/architecture.md#provider-adapter). |
 | Adopted safety behavior | Implement/test accepted policies and permitted controls; keep brief exclusions fixed. | [Safety handoff](docs/safety-and-security.md#12-decisions-and-implementation-handoff). |
 | Visitor data | Implement expiry/revocation and automatic cleanup; verify notices/provider/backup retention. Manual deletion is deferred, not a blocking contract gap. | [Privacy boundary](docs/api-contract.md#privacy-implementation-boundary). |

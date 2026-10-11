@@ -1,0 +1,51 @@
+{
+  "name": "gusto-nutribite",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x",
+    "npm": "11.x"
+  },
+  "packageManager": "npm@11.11.0",
+  "scripts": {
+    "dev": "node scripts/local.mjs",
+    "start": "next start --hostname 127.0.0.1",
+    "build": "next build --webpack",
+    "db:migrate": "node scripts/migrate.mjs",
+    "maintenance": "node scripts/run-ts.mjs scripts/maintenance.ts",
+    "check:format": "prettier --check src tests scripts migrations *.json *.mjs *.ts .github/workflows/ci.yml",
+    "check:lint": "eslint src tests scripts",
+    "check:types": "tsc --noEmit",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "node scripts/test.mjs integration",
+    "test:e2e": "node scripts/test.mjs browser",
+    "test:browser-matrix": "node scripts/test.mjs matrix",
+    "check": "node scripts/check.mjs"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.4",
+    "jsonc-parser": "3.3.1",
+    "next": "16.4.0",
+    "pg": "8.16.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.1",
+    "@playwright/test": "1.58.2",
+    "@types/node": "24.10.1",
+    "@types/pg": "8.15.6",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "embedded-postgres": "17.9.0-beta.17",
+    "esbuild": "0.28.2",
+    "eslint": "9.39.1",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.56.1",
+    "vitest": "4.1.11"
+  }
+}

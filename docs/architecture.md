@@ -1,6 +1,6 @@
 # Gusto NutriBite: Architecture
 
-Status: Adopted M1 build baseline, 11 October 2026. Implementation, provider compatibility, and deployment remain unverified.
+Status: Phase 1 local foundation implemented on 11 October 2026. Real provider compatibility, full model safety, and deployment remain unverified.
 
 Last updated: 11 October 2026.
 
@@ -20,7 +20,9 @@ Read this design with:
 | [UX flows](ux-flow.md) | Submission, refusal, new chat, refresh recovery, and retry behavior. |
 | [Efficiency guidance](token-optimization-and-efficiency.md) | Bounded context, calls, output, retries, and honest usage measurement. |
 
-**Current evidence:** The repository contains documentation and no application implementation. The stack and initial configuration defaults were adopted with the [implementation plan](phase-wise-implementation-plan.md). Exact versions, model access, hosting behavior, performance, safety, and deployment remain unverified.
+**Current evidence:** The Phase 1 foundation uses the pinned [package manifest](../package.json), [server composition](../src/server/bootstrap.ts), [turn service](../src/server/turn-service.ts), [database boundary](../src/server/db/connection.ts), and [runtime maintenance loop](../src/server/runtime.ts). See [software evidence](testing.md#phase-1-implementation-evidence). Model access, nutrition-answer quality, full safety policy, and public hosting remain later-phase work.
+
+The local/test profile accepts only loopback origins and a scripted provider. Production configuration is rejected; there is no public scripted fallback. Canonical context uses UTF-8 byte length as a conservative token upper bound, capped at 8,000, without pruning. Phase 2 must verify the real tokenizer and reserve each provider phase's full instructions, candidate, and output budget. Raw scripted output is bounded at 256 KiB, enough for the maximum escaped v1 answer/claims representation; field limits remain stricter. No retrieval runs in M1; the [boundary](../src/server/retrieval.ts) returns an empty list.
 
 ## 2. Selected stack and scope
 

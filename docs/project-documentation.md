@@ -42,6 +42,8 @@ Use AI to help write and build. Keep proposed choices visible for review, and us
 
 ## What to reuse in future projects
 
+Phase 1 implementation, 11 October 2026: created the single pinned Next.js app and strict v1 schemas, one PostgreSQL migration, anonymous ownership/CSRF, durable turn/attempt/call records, explicit replay/retry, bounded context, quotas, deadline reconciliation and scoped cleanup. Added a clearly labelled scripted local interface and project-owned database/process launchers. Real PostgreSQL tests exercise invalid fixtures, races, uncertain commits, expiry and restart; browser tests exercise saved recovery and inert rendering. See [the plan](phase-wise-implementation-plan.md) and [dated software evidence](testing.md#phase-1-implementation-evidence) for final status and preserved initial failures. No paid model call, evaluation, deployment or GitHub push was performed.
+
 - Separate requirements from suggestions and unanswered questions.
 - Describe failure paths as well as successful ones.
 - Keep details in one place and link to them.
@@ -51,4 +53,4 @@ Use AI to help write and build. Keep proposed choices visible for review, and us
 
 ## Next step
 
-Begin Phase 1 under the [implementation plan](phase-wise-implementation-plan.md) and [agent guidance](../AGENTS.md): pin compatible tooling and establish isolated PostgreSQL before database integration. Add verified runtime commands and procedures to [operations](deployment-and-operations.md) as code appears. Use existing design references during UI work. Keep documented, built, tested, evaluated, and deployed statuses distinct.
+After Phase 1 verification, follow Phase 2 in the [implementation plan](phase-wise-implementation-plan.md): verify the real provider, implement the adopted safety pipeline, and complete the application UI. Use existing design references and preserve the persistence/recovery guarantees. Keep documented, built, tested, evaluated, and deployed statuses distinct.

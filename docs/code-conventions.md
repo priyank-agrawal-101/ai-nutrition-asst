@@ -1,6 +1,8 @@
 # Gusto NutriBite: Code Conventions
 
-Status: Implementation baseline for the selected architecture. No source files, tooling configuration, or migrations are created by this document.
+Status: Implemented Phase 1 tooling and source conventions, 11 October 2026; future provider/release work must preserve these boundaries.
+
+Pinned tools are in [package.json](../package.json) and [.node-version](../.node-version). [ESLint](../eslint.config.mjs) checks typed promises, unsafe values, and client-to-server imports. [Prettier](../prettier.config.mjs) formats authored implementation files without reformatting original documents/design assets. The [check runner](../scripts/check.mjs) also verifies the case map and local documentation links. Operator/test TypeScript entry points are bundled with pinned esbuild; this avoids an OS-account lookup failure observed in the Windows sandbox's TypeScript launcher.
 
 Last updated: 11 October 2026.
 

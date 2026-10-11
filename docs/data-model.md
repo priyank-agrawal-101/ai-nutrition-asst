@@ -1,6 +1,6 @@
 # Gusto NutriBite: Data Model
 
-Status: Adopted M1 data baseline, 11 October 2026. No database or migration exists; SQL implementation and verification remain outstanding.
+Status: Phase 1 initial PostgreSQL 17 migration and durable lifecycle implemented, 11 October 2026. See testing for verified variants and remaining release work.
 
 Last updated: 11 October 2026.
 
@@ -28,6 +28,10 @@ Use PostgreSQL and Drizzle selected in architecture, pinning compatible versions
 | Rate and capacity state | Small PostgreSQL quota and generation-slot tables. | Correctness must survive restarts and additional app instances. |
 
 JSONB stores parsed JSON; it does not preserve original whitespace, key order, or duplicate keys. Validate before conversion. It is suitable for accepted structured content, not a substitute for raw provider evidence when a controlled evaluation explicitly needs that evidence.
+
+Implementation: [0001_foundation.sql](../migrations/0001_foundation.sql) contains all eight tables, row/unique/scoped deferred constraints, immutable-field guards, purge restrictions, and four generation slots. [The migration runner](../scripts/migration-lib.mjs) checks the committed [checksum manifest](../src/server/db/migration-manifest.json), serializes migrations, and refuses changed applied SQL. This first schema is authored as explicit SQL because its locks, cyclic relationships, and deferred triggers are central requirements; Drizzle executes parameterized service queries with runtime-validated projections. No schema push or web-startup migration runs. Migration/admin and runtime credentials are separate; runtime cannot alter schema, edit the migration ledger, or add capacity. Tests exercise this role distinction.
+
+The initial migration was revised only against disposable test databases before local delivery. No previous released schema exists, so no populated upgrade claim is made. Restore rehearsal and external backup retention remain Phase 3 operating evidence.
 
 ### Common conventions
 

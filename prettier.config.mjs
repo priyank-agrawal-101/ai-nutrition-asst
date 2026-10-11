@@ -1,0 +1,7 @@
+export default {
+  tabWidth: 2,
+  singleQuote: false,
+  semi: true,
+  trailingComma: "all",
+  endOfLine: "lf",
+};

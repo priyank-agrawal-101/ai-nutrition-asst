@@ -1,6 +1,8 @@
 # Gusto NutriBite: UX Flows
 
-Status: Adopted M1 behavior, 11 October 2026. No implementation or verification is claimed.
+Status: Phase 1 minimal local flow implemented, 11 October 2026; complete M1 design and accessibility acceptance remain Phase 2 work.
+
+The [local chat](../src/app/page.tsx) uses the existing Wise palette, rounded white surfaces, and system-font fallback through [shared tokens](../src/app/globals.css) and [CSS Modules](../src/app/chat.module.css). It explicitly labels scripted mode, preserves one question per turn, restores through reads, exposes explicit retry/check-again actions, and keeps Sources empty. The initial desktop layout is two columns; it stacks below 700px. See [browser evidence](testing.md#phase-1-implementation-evidence); this is not a claim of completed screen-reader or release browser-matrix review.
 
 Based on [problemStatement.md](problemStatement.md) and [product-spec.md](product-spec.md). Follow the [README writing rules](../README.md#writing-rules).
 

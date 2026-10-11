@@ -184,6 +184,8 @@ The absolute access lifetime remains seven days. Shared browsers share the same 
 
 ### CSRF construction and rotation
 
+Phase 1 implementation: [security](../src/server/security.ts), [configuration](../src/server/config.ts), and [quotas](../src/server/quotas.ts). Local/test profile enforcement, session/Origin/CSRF, ownership, quotas and cleanup have [software evidence](testing.md#phase-1-implementation-evidence). Production is disabled. Full nutrition safety classification/templates/output review remain Phase 2; scripted verdicts are not evidence of language recognition or factual safety.
+
 Use an independent random server key of at least 32 bytes for HMAC-SHA-256. Store only its key-version identifier and the 32-byte random session nonce in the session row. The canonical message is:
 
 ```text

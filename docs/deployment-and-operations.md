@@ -1,6 +1,6 @@
 # Gusto NutriBite: Deployment and Operations
 
-Status: Initial operating guidance, 11 October 2026. No application, runtime configuration, deployment, or verified operating commands exist yet.
+Status: Phase 1 local operation implemented, 11 October 2026. Public hosting, real-provider configuration, and release operations remain unverified.
 
 This document owns environment setup, release procedures, maintenance, and recovery. Follow the [implementation plan](phase-wise-implementation-plan.md); [architecture](architecture.md#12-deployment-and-operations), [safety/security](safety-and-security.md), and [data model](data-model.md) remain authoritative for behavior and constraints. Add exact commands and evidence here as implementation makes them real.
 
@@ -59,7 +59,26 @@ Use the existing quotas plus verified provider spending controls where available
 
 All items below are pending; documentation creation clears no software or release gate.
 
-- [ ] Phase 1: pinned versions, environment names/loader, isolated DB/roles, actual start/migration/maintenance commands, and restart/cleanup tests.
+- [x] Phase 1: pinned versions, environment names/loader, isolated DB/roles, start/migration/maintenance implementation, and passing restart/cleanup tests. See [evidence](testing.md#phase-1-implementation-evidence).
 - [ ] Phases 2–3: verified provider configuration/privacy, live-run budget/reviewer/artifact location, regression evidence, and shutdown behavior.
 - [ ] Before public access: Railway settings, operator/contact, spend/alerts, tested backup/restore commands, recovery point, and retention enforcement.
 - [ ] Phase 4: deployed identity/URL, external verification, and release/rollback record. Use concise dated entries here; link detailed test/evaluation evidence instead of copying it.
+
+## Phase 1 local operation
+
+The [local launcher](../scripts/local.mjs) is `npm run dev`, after `npm ci` and `npm run build`. It creates only project-owned resources under `.tmp/local`, selects unused loopback ports, saves the origin/security configuration for restart, and uses PostgreSQL **17.9** packaged native binaries. This is a dedicated PostgreSQL cluster, not SQLite or a database from another project. The same PostgreSQL major is pinned in [CI](../.github/workflows/ci.yml). Local runtime data and credentials are ignored by Git; preserve the directory between launches.
+
+Use Node 24.14.0 and npm 11.11.0. During this Windows implementation, a project-local runtime was installed in `.tmp/runtime/` because the host has Node 26. With that existing runtime, PowerShell can select it for one terminal:
+
+```powershell
+$env:PATH = (Join-Path (Get-Location) '.tmp/runtime/node_modules/node/bin') + ';' + $env:PATH
+& .tmp/runtime/node_modules/node/bin/node.exe .tmp/runtime/node_modules/npm/bin/npm-cli.js run dev
+```
+
+On a fresh machine, install/select the pinned LTS runtime normally; `.tmp/runtime` is not committed. The npm commands themselves work in PowerShell, Git Bash, and Linux. The launcher serves the production build and reports the chosen URL. It refuses occupied stored ports rather than stopping another listener. Ctrl+C stops its child application and then its cluster, preserving local data. It opens no visible helper windows.
+
+For separately provisioned dedicated PostgreSQL, [`.env.example`](../.env.example) names the inputs validated by [config.ts](../src/server/config.ts). Supply them in the process environment, or with Node's `--env-file` option; operator scripts do not implicitly load `.env`. `npm run db:migrate` requires `MIGRATION_DATABASE_URL`; it never falls back to `DATABASE_URL`. `npm run maintenance` uses the runtime configuration and the same reviewed purge/reconciliation routine. It has no HTTP endpoint. The local launcher generates its own ignored configuration, so it needs no manual secret entry.
+
+Maintenance starts with the Node server and repeats every five minutes without overlapping passes, with 100-session/100-conversation batches. Status reads reconcile relevant expired attempts independently. Safe events include counts, duration and oldest cutoff; production alert delivery and seven-day platform-log/backup enforcement remain unverified. The generation flag is read at bootstrap; changing it requires restarting the app with the new configuration. History/replay/cleanup remain available when new generation is disabled.
+
+Phase 1 rejects `APP_ENV=production` and non-loopback origins. The network quota subject groups loopback traffic and ignores forwarded addresses. Before opening public service, implement/verify trusted-proxy address extraction, HTTPS cookies, CSP, real provider/policy configuration, spend controls, operator contact, backup restore and retention. No Railway resource or paid provider was provisioned by Phase 1.

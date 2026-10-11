@@ -1,6 +1,6 @@
 # Gusto NutriBite: Phase-wise Implementation Plan
 
-Status: Approved implementation sequence; implementation not started.
+Status: Phase 1 complete and locally verified on 11 October 2026. Phases 2-4 not started; M1 is not yet evaluated or deployed.
 
 Last updated: 11 October 2026.
 
@@ -74,22 +74,22 @@ Keep the short [assignment comparison](problem-statement-alignment.md) as the re
 
 ### Phase 1 — Durable local chat foundation
 
-**Status:** Not started.
+**Status:** Done — implemented and locally verified on 11 October 2026, using the scripted provider only.
 
 **Objective:** Establish a working local application boundary with persistent conversations and reliable recovery, using a scripted provider.
 
-**Prerequisites:** Approved baseline, this plan, and initial agent/operations guidance are present. Pin compatible tooling during scaffolding and establish isolated PostgreSQL before database integration. Phase 1 is the next implementation phase; it has not started.
+**Prerequisites:** Approved baseline and agent/operations guidance are present. Node 24.14.0, npm 11.11.0, application/test dependencies, and PostgreSQL 17.9 are pinned. A dedicated native PostgreSQL cluster is provisioned within this project because Docker was unavailable on PATH. No other project's database or process is used.
 
 **Tasks**
 
-- [ ] Scaffold the single app, typed configuration, lockfile, and documented check commands.
-- [ ] Materialize strict public schemas and bounded request parsing, including raw JSON/Unicode checks.
-- [ ] Implement anonymous sessions, Origin/CSRF protection, and ownership on every protected path.
-- [ ] Implement conversation creation/history and turn, attempt, message, and provider-call records. Prefer one reviewed initial migration where practical.
-- [ ] Add transactional acceptance/completion, durable replay, explicit retry, deadline reconciliation, quotas, and capacity limits.
-- [ ] Implement full-context construction, limits, and revision-based recovery.
-- [ ] Add expiry/revocation cleanup, safe telemetry, and liveness/readiness endpoints.
-- [ ] Build the isolated PostgreSQL/test harness and a minimal local interface to exercise the flow. Scripted mode is test/local bootstrap configuration, never a public request option or production fallback.
+- [x] Scaffold the single app, typed configuration, lockfile, and documented check commands.
+- [x] Materialize strict public schemas and bounded request parsing, including raw JSON/Unicode checks.
+- [x] Implement anonymous sessions, Origin/CSRF protection, and ownership on every protected path.
+- [x] Implement conversation creation/history and turn, attempt, message, and provider-call records in one initial migration.
+- [x] Add transactional acceptance/completion, durable replay, explicit retry, deadline reconciliation, quotas, and capacity limits.
+- [x] Implement full-context construction, limits, and revision-based recovery.
+- [x] Add expiry/revocation cleanup, safe telemetry, and liveness/readiness endpoints.
+- [x] Build the isolated PostgreSQL/test harness and a minimal local interface. Scripted mode is bootstrap-only; production configuration is rejected.
 
 **Authorities:** [Architecture](architecture.md), [API](api-contract.md), [data model](data-model.md), [safety/security](safety-and-security.md), [testing](testing.md), and [conventions](code-conventions.md).
 
@@ -100,6 +100,10 @@ Keep the short [assignment comparison](problem-statement-alignment.md) as the re
 **Verification:** `npm ci`, `npm run check`, `npm run test:integration`, `npm run build`; case-linked evidence for ownership, request parsing, concurrency, commit uncertainty, restart, and cleanup.
 
 **Risks:** DB availability, transaction races, and boundary parsing. Live provider access is not required; scripted results are not AI evaluation evidence.
+
+**Implementation evidence, 11 October 2026:** [Runtime contracts](../src/contracts/api.ts), [turn lifecycle](../src/server/turn-service.ts), [initial SQL](../migrations/0001_foundation.sql), [isolated harness](../scripts/test.mjs), and [minimal chat](../src/app/page.tsx). [Testing](testing.md#phase-1-implementation-evidence) records commands, case-linked assertions, initial failures/fixes, and limits. [Operations](deployment-and-operations.md#phase-1-local-operation) owns setup. The [169-case map](../tests/coverage-map.json) identifies selected assertions without implying complete M1 coverage. Real model/policy evaluation, full UI review, restore rehearsal, CI execution and public delivery are not Phase 1 results.
+
+**Final verification:** `npm ci`, `npm run check` (19 unit tests plus format/lint/types), `npm run test:integration` (20 real PostgreSQL/HTTP/process tests), `npm run build`, and `npm run test:e2e` (2 Chromium tests) passed on Windows with the pinned runtime. Local launcher startup and both health endpoints passed; its application/database listeners were stopped after verification. Changes remain local and uncommitted. The evidence identifies the initial failing runs and corrections; no evaluation result was manufactured or overwritten.
 
 ### Phase 2 — Complete local assistant with real model and UI
 
@@ -185,7 +189,7 @@ Use checkboxes and short evidence notes in this plan. Task statuses are **Not st
 
 | Phase | Status | Completion evidence |
 | --- | --- | --- |
-| 1 — Durable local chat foundation | Not started | None |
+| 1 — Durable local chat foundation | Done: locally built and tested | [Phase 1 evidence](testing.md#phase-1-implementation-evidence): 19 unit, 20 integration, 2 Chromium; clean install/build and launcher health passed |
 | 2 — Complete local assistant | Not started | None |
 | 3 — Evaluation and release clearance | Not started | None |
 | 4 — Deploy and verify | Not started | None |

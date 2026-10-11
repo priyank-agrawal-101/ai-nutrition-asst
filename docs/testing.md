@@ -1,6 +1,6 @@
 # Gusto NutriBite: Software Testing
 
-Status: Implementation baseline for the selected stack. Test configuration, scripts, fixtures, and CI do not exist yet; no application checks have passed.
+Status: Runnable Phase 1 checks and isolated PostgreSQL/browser harness implemented, 11 October 2026. See the dated evidence below; remaining M1 variants are not implied to pass.
 
 Last updated: 11 October 2026.
 
@@ -31,6 +31,8 @@ Assign each assertion to the lowest layer that can establish it. A unit check fo
 ### Database lifecycle
 
 Local integration runs provision a disposable PostgreSQL container through a Node launcher; CI uses a dedicated PostgreSQL service. Pin the same PostgreSQL major version as the chosen deployment baseline. If local container support is unavailable, accept only an explicitly provisioned test cluster; never silently use SQLite or the development database.
+
+Phase 1 local choice: [scripts/test.mjs](../scripts/test.mjs) explicitly provisions a dedicated PostgreSQL 17 native cluster under this project's ignored `.tmp/` because Docker was unavailable on PATH. CI supplies its dedicated PostgreSQL 17 service through `TEST_DATABASE_URL`. Both paths create a random database, record matching filesystem/database ownership markers, apply the production migration, create a restricted runtime role, and verify ownership before dropping only those resources. Test clusters stop at completion; leftover cluster directories contain no retained test database and are not application data.
 
 The launcher creates a randomly named database such as `nutribite_test_<run-id>`, applies the real migration chain, and records ownership of that resource. Keep migration and runtime database roles distinct so runtime permission checks are meaningful. Test-only marker metadata belongs in a harness-owned schema, not an application migration.
 
@@ -111,7 +113,9 @@ Use accessible roles/labels for locators; add a test ID only when no stable sema
 
 ## 6. Command and CI contract
 
-These are **target npm script names**, not commands available today. Define them during scaffolding, and make a required command exit nonzero on a failing assertion, missing required dependency, or unexpectedly empty suite. Actual runtime/package versions are pinned as described in [code conventions](code-conventions.md#2-typescript-tooling-and-source-style).
+All npm entries below are implemented for Phase 1 and exit nonzero on failing assertions, missing required dependencies, or unexpectedly empty suites. Versions are pinned as described in [code conventions](code-conventions.md#2-typescript-tooling-and-source-style). `check` additionally validates the coverage map and local Markdown targets. `test:e2e` requires a production build and installed Chromium; the release matrix also requires Firefox and WebKit.
+
+Install browsers with `PLAYWRIGHT_BROWSERS_PATH` set to this project's `.cache/playwright`, then run `npx playwright install chromium`. On PowerShell: `$env:PLAYWRIGHT_BROWSERS_PATH = (Join-Path (Get-Location) '.cache/playwright')`. On Git Bash: `export PLAYWRIGHT_BROWSERS_PATH="$PWD/.cache/playwright"`. CI installs Linux dependencies with `npx playwright install --with-deps chromium`.
 
 | Entry point | Responsibility |
 | --- | --- |
@@ -151,3 +155,26 @@ Collect coverage when useful for finding untested branches, not as a target perc
 The test harness is ready when its commands execute real assertions, clean up only owned resources, detect a deliberately failing fixture, and produce case-linked evidence. A feature's software checks are complete when all applicable mapped variants ran with their stated real dependencies and no required failure/gap is hidden. The broader release decision is made under [the existing release review](safety-and-security.md#release-review) with [evaluation evidence](evaluation.md#13-completion-review-decisions-and-release-boundaries).
 
 Keep harness links here as code appears and new scenarios in the catalogue. The [implementation plan](phase-wise-implementation-plan.md) tracks delivery; the short [assignment comparison](problem-statement-alignment.md) checks scope without duplicating this testing specification.
+
+## Phase 1 implementation evidence
+
+Date: **11 October 2026**. Identity: version `0.1.0`, uncommitted Phase 1 working tree based on `main` at `e8099e6`; migration SHA-256 `cf599134d156ad2b47322bf133dce0c3aa133d1d7011634c8ed9101c9e795165` is recorded in the [manifest](../src/server/db/migration-manifest.json). Tests use Node **24.14.0**, npm **11.11.0**, PostgreSQL **17.9**, and scripted provider `fixture-v1`. These are software tests, not model evaluation.
+
+| Check | Evidence / disposition |
+| --- | --- |
+| Clean installation | `npm ci` passed after lockfile stabilization; dependency audit reported zero vulnerabilities. |
+| Format, lint, types, unit | Passed `npm run check`: **19 unit tests** plus format/lint/types, raw duplicate keys, Unicode, CSRF, configuration separation, strict output, context and revision merging. |
+| PostgreSQL and HTTP | Passed `npm run test:integration`: **20 tests**, including real commits/rollback, acknowledgement-loss seams, replay/retry, capacity/quotas, ownership, invalid fixtures, expiry/revocation/purge, and restart. Final run database `nutribite_test_66daf3f4904a4c25b0d5fa92176d9b65` was removed after ownership verification; no test skipped. |
+| Production build | Passed `npm run build`: compiled Next.js app/API; no migration/model call at build. |
+| Browser smoke | Passed `npm run test:e2e`: **2 Chromium desktop tests**, dropped-response recovery/refresh with one submission, new chat, empty sources, keyboard submission, and inert HTML-like text. Final test database `nutribite_test_7117d8f5bc22434d8f45a8b0a9982eb6` was cleaned. |
+| Coverage and documents | [Coverage map](../tests/coverage-map.json) retains 169 IDs and identifies pending/deferred work. [Local links](../scripts/docs-check.mjs) and case references are checked. |
+
+Local launcher smoke also passed: production-built app at its allocated loopback origin, `/api/v1/health/live` and `/api/v1/health/ready` both HTTP 200, startup maintenance recorded zero pending payload. Both app/database listeners were confirmed stopped afterward; the empty local database/configuration remain available for the owner. No other project was used for verification.
+
+The restart test kills its own handler process after a call-intent barrier, starts a new process against the same database, observes the saved running turn, and waits for its real 60-second database deadline before reconciliation. It does not reset data. A separate finalization test crosses a one-second fixture deadline after `BEGIN`, detecting stale transaction-start time. Invalid fixture transactions must fail their assertions and leave no partial exchange.
+
+The harness passes an explicit environment allowlist and never loads live-provider credentials or development `.env`. Scripted mode has no outbound model client. Unit `fetch` calls fail; browser requests are restricted to the harness origin. Fixtures are bound to constructor-supplied phase queues, never to question text or public request flags. Raw test diagnostics/artifacts contain only synthetic fixtures. All cleanup verifies ownership.
+
+Earlier failures retained here: the first 13-case database run had 11 failures from a polymorphic trigger reading a nonexistent row field; table-specific branches corrected it without disabling constraints. The restart launcher hit Windows sandbox `os.userInfo()` failure; its child is now bundled with esbuild and runs as ordinary Node JavaScript. One browser assertion used exact text matching on an article containing its speaker label; inspection confirmed saved history, and the assertion now targets article content. No failing test was skipped. Three initial development-tool advisories were resolved with reviewed package updates. Browser installation required network escalation after the sandbox denied the CDN.
+
+Desktop screenshot inspection confirmed readable spacing, stored-message text and the empty sources panel. Phase 2/3 still owns complete UI, screen-reader review, Firefox/WebKit/mobile release coverage, real-provider compatibility and safety evaluation, restore rehearsal, trusted-proxy behavior and deployed retention. The map links selected assertions, not a claim that every variant of all 169 cases passed. CI is configured but no GitHub Actions execution or public deployment is claimed.

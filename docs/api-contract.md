@@ -1,6 +1,6 @@
 # Gusto NutriBite: API Contract
 
-Status: Adopted M1 API baseline, 11 October 2026. No API or executable schema is implemented or tested.
+Status: v1 API implemented for the Phase 1 local scripted foundation, 11 October 2026. Real-provider and release verification remain outstanding.
 
 Last updated: 11 October 2026.
 
@@ -9,6 +9,8 @@ Last updated: 11 October 2026.
 This document defines the HTTP contract between chat and backend: paths, payloads, validation, ownership, completion, errors, and recovery. It carries forward the adopted [architecture](architecture.md), [product requirements](product-spec.md), and [UX](ux-flow.md). The [implementation plan](phase-wise-implementation-plan.md) adopts these as the M1 baseline; actual provider compatibility and executable schema checks remain required.
 
 Use this document as the home for public field names and wire behavior. Database tables are defined in the draft [data model](data-model.md); policy and privacy rules belong in `safety-and-security.md`; prompts belong in `prompt-spec.md`. Once code exists, link the runtime schemas here and check that they match this contract.
+
+Executable owners: [strict public schemas](../src/contracts/api.ts), [bounded raw JSON reader](../src/server/validation/json.ts), [HTTP adapter](../src/server/http.ts), and [Next.js route](../src/app/api/v1/[[...path]]/route.ts). Phase 1 preserves the public citation union and enforces null sources at acceptance/storage. Its internal scripted phase verdicts are test fixtures, not the real classifier/review schemas or evaluated policies specified for Phase 2. The local network quota subject is one loopback group; forwarded headers are ignored. Public network identity and secure-cookie deployment must be implemented/verified before production is enabled.
 
 Milestone 1 answers without retrieval. Milestone 2 uses the same API version, endpoints, interface, and response shapes; it fills the citation fields defined here. There is no public provider, prompt-editing, evaluation, or retrieval endpoint.
 

@@ -225,4 +225,10 @@ Completed missing policy-extension capture and preserved all adverse results. Ad
 
 A real PostgreSQL archive rehearsal found an unqualified function lookup that broke restore. Additive migration 0005 fixes that lookup; the rehearsal verifies restored-session invalidation and purge while preserving source data. Browser projects now receive separate databases so testing cannot exhaust shared bootstrap quotas. Firefox's smallest-screen text metrics exposed a four-pixel spacing correction. [Testing](testing.md#phase-3-release-verification) records results; [the review disposition](evaluations/phase3-review.md) identifies what remains.
 
-The owner will review factual evidence and screen-reader behavior. Use "An experimental project created by Priyank Agrawal"; no dedicated support contact or ZDR requirement is added to the assignment. The next step is human review and a bounded general model-behavior correction/regression, not public deployment.
+The owner will review factual evidence and screen-reader behavior. Use "An experimental project created by Priyank Agrawal"; no dedicated support contact or ZDR requirement is added to the assignment. At this handoff, the next step was human review and disposition; ordinary evaluation failures are recorded rather than patched around.
+
+## Public deployment smoke checks, 13 October 2026
+
+The owner deployed the frontend to [Vercel](https://ai-nutrition-asst.vercel.app) and the backend/Postgres to Railway. Setup required replacing template variables, configuring the migration pre-deploy command and correcting frontend host validation for Next.js's internal request URL. The proxy change passed build, 78 unit tests and 55 integration tests before deployment.
+
+Agent HTTP checks confirmed both public readiness endpoints, the homepage and anonymous session creation/resumption. The owner confirmed an answer was generated and remained after refresh. A supplied screenshot confirms refusals with professional referrals for the daily-calorie-target and diabetes-diet requests, each with zero claims. The [release record](deployment-and-operations.md#release-record) owns the evidence distinction and remaining operational, security, account and review gaps. No new evaluation batch or question-specific model fix was made, and full Phase 4 completion is not claimed.

@@ -1,10 +1,10 @@
 # Gusto NutriBite: Deployment and Operations
 
-Last updated: 13 October 2026. **Status: final pre-deployment plan; local production support verified, cloud deployment not started.** Priyank Agrawal is the project creator/operator and will deploy. This document owns the execution steps and operating procedures; the [implementation plan](phase-wise-implementation-plan.md#phase-4--deploy-verify-and-close-m1) tracks milestone progress.
+Last updated: 13 October 2026. **Status: deployed; public health/session checks passed, and the owner confirmed answering, saved history and both direct scope refusals.** Priyank Agrawal is the project creator/operator. Remaining release evidence is tracked below; deployment success does not close all Phase 4 checks. This document owns the execution steps and operating procedures; the [implementation plan](phase-wise-implementation-plan.md#phase-4--deploy-verify-and-close-m1) tracks milestone progress.
 
 ## Deploy with Railway and Vercel
 
-Owner decision, 13 October 2026: use the same GitHub repository for a Railway backend/PostgreSQL and a Vercel frontend. This replaces the earlier Railway-only hosting choice. Production preparation is implemented locally; the owner will perform deployment. Cloud builds, platform configuration and public behavior remain unverified until the steps below are executed.
+Owner decision, 13 October 2026: use the same GitHub repository for a Railway backend/PostgreSQL and a Vercel frontend. This replaces the earlier Railway-only hosting choice. The owner deployed both services. The release record distinguishes directly checked public behavior, owner-provided evidence and platform settings still awaiting verification.
 
 The browser calls `/api/v1/*` on its Vercel origin. A server-side Vercel route forwards to the configured Railway HTTPS origin with a shared secret and canonical visitor address. Railway owns database access, Groq, session/CSRF checks, quotas and cleanup. Vercel holds only its proxy secret and public origins. No CORS relaxation or browser-readable session token is needed. Preview deployments deliberately cannot access this production backend.
 
@@ -24,10 +24,10 @@ flowchart LR
 | --- | --- |
 | Application preparation | Build, 77 unit checks, 55 integration tests and 40 browser tests passed in the recorded local run. See [testing](testing.md#phase-4-local-production-preparation); these are not cloud results. |
 | Container and GitHub CI | Docker unavailable locally. Push the reviewed commit and confirm the full CI run, including the container build, passes. |
-| Code identity | Deployment changes are currently local and uncommitted. Record the selected branch and commit before connecting releases. |
+| Code identity | Local checkout contains proxy fix `eb3caef`; the owner reported deploying the fix. Record exact platform deployment IDs and source commits independently. |
 | Hosting access and cost | Operator selects the Railway/Vercel accounts and records the hosting budget, provider budget and alert settings. No paid plan or price is assumed. |
-| Domains | Reserve one stable Vercel production origin and one Railway backend origin. Platform domains are sufficient; record both below. |
-| Secrets and database | Configure platform-held secrets and a new dedicated PostgreSQL database using the committed templates. Never copy `.tmp/local` or its visitor data into production. |
+| Domains | Frontend `https://ai-nutrition-asst.vercel.app`; backend `https://ai-nutrition-asst-production.up.railway.app`. Both readiness endpoints returned 200. |
+| Secrets and database | Owner configured dedicated Railway Postgres and application variables; migration/runtime access and public sessions pass. Rotation of the database-owner credential previously exposed in a setup screenshot remains unconfirmed. No credential is reproduced here. |
 | Model evidence | Preserve the existing M1 failure log. Record the consequential food-safety release disposition under the existing safety policy; no question-specific fixes or perfect-accuracy target are added. Human accessibility review remains separately identified as unperformed. |
 | Privacy | Keep the test-project attribution and truthful Groq retention notice. A new public contact address or verified/enabled Groq Zero Data Retention is not required by this plan. |
 
@@ -98,7 +98,7 @@ The frontend validates Vercel's visitor-facing `Host` header against the exact h
 
 For a failed frontend proxy request, inspect Vercel runtime logs for `frontend_proxy_failed` and the response's `request_id`. The `stage` identifies configuration, host, path, method, origin, client address, body, or upstream failure. Logs contain no header values, IP addresses, secrets, bodies, or exception objects. A `host` failure calls for checking the deployed Production origin and domain; `client_address` requires checking platform header handling rather than trusting a browser-supplied IP. A successful health proxy alone does not prove authenticated chat access; verify the session flow before enabling generation.
 
-This compatibility change requires a new GitHub commit and Vercel production deployment. Its effect on the observed hosted 403 remains unverified until that deployment is checked.
+After the owner deployed the compatibility change, both public readiness endpoints returned 200 on 13 October 2026. Vercel session creation returned 201 and authenticated session lookup returned 200. The previous hosted 403 is resolved; see the release record for the remaining checks.
 
 ### 6. Verify before opening the app to visitors
 
@@ -123,21 +123,21 @@ Fill this record with non-secret identifiers and evidence after each step. Keep 
 | Field | Value / evidence |
 | --- | --- |
 | Operator | Priyank Agrawal |
-| Selected production branch and commit | Pending |
+| Selected production branch and commit | Owner reported deploying the proxy fix; local checkout `eb3caef`. Exact platform source commits/branch not independently checked. |
 | GitHub CI run, including container build | Pending |
-| Railway project/service and backend deployment ID | Pending |
-| Railway backend origin | Pending |
-| PostgreSQL version, migration result and runtime-grant check | Pending |
-| Vercel project and frontend deployment ID | Pending |
-| Vercel production origin | Pending |
+| Railway project/service and backend deployment ID | Screenshot identifies project `awake-growth`, environment `production`, service `ai-nutrition-asst`; deployment ID pending. |
+| Railway backend origin | `https://ai-nutrition-asst-production.up.railway.app` |
+| PostgreSQL version, migration result and runtime-grant check | Owner-provided pre-deploy log: migrations and restricted runtime access verified. Public readiness 200 confirms schema/runtime-role checks pass. Actual hosted PostgreSQL major version remains unverified. |
+| Vercel project and frontend deployment ID | Production domain below is live; deployment ID pending. |
+| Vercel production origin | `https://ai-nutrition-asst.vercel.app` |
 | Backend `BUILD_ID` | Pending; must identify the selected commit |
 | Provider/model and prompt baseline | Groq `openai/gpt-oss-120b`, `m1-prompts-v2`; verify effective deployed configuration |
 | Operating spend limits, alerts, backup/log retention | Pending; private evidence reference only |
-| Live smoke budget, actual usage and results | Pending |
-| Health, cookies, CSRF/ownership, proxy, assets and browser checks | Pending |
+| Live smoke budget, actual usage and results | Owner confirms a useful answer and saved conversation after refresh. Screenshot confirms both direct refusals with professional referrals and zero claims. Hosted follow-up/rephrased/sideways/delayed refusal checks are not separately evidenced. A distinct hosted smoke cap and actual provider usage were not captured; do not infer them from question count or reuse the earlier evaluation allocation. No additional agent model calls were made. |
+| Health, cookies, CSRF/ownership, proxy, assets and browser checks | Agent HTTP checks: both readiness endpoints 200, frontend page 200, session creation 201 with CSRF token and Secure/HttpOnly/host-scoped cookie, cookie-authenticated session GET 200. Owner confirms browser answering and refresh persistence. Hosted negative CSRF/cross-session tests and full browser/security matrix remain pending. |
 | Cleanup, shutdown and recovery checks | Pending |
 | Consequential findings and release disposition | See [Phase 3 review](evaluations/phase3-review.md); record operator disposition |
-| Final public-delivery date and outcome | Not deployed |
+| Final public-delivery date and outcome | Deployed 13 October 2026; core public flow works with the evidence above. Full Phase 4 closure remains pending. |
 
 ### Implementation boundaries and references
 

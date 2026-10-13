@@ -269,6 +269,8 @@ Restore backups with public access disabled. M1 uses the conservative fallback: 
 
 Use structured logging with an allowlist at the boundary; replacing a few known secret substrings after logging is not sufficient. Sanitize and bound provider error fields before recording them. Configure hosting/access logs and error-monitoring integrations consistently; if a platform necessarily retains network metadata, document its scope and retention instead of claiming it collects none.
 
+Frontend proxy failures use the schema-validated `frontend_proxy_failed` event with only a random request ID and an enumerated validation/dispatch stage. Do not include actual request hosts, origins, client addresses, header values, request content, configuration values or arbitrary exceptions. The public error contract remains unchanged.
+
 No routine operator browsing of visitor transcripts is part of Milestone 1. Use synthetic reproduction and safe diagnostics first. Grant private data access only for a defined purpose to the minimum needed maintainer, record the access, and apply the retention policy. Do not create a public admin or evaluation route to make debugging convenient.
 
 Every observed safety failure must be recorded. Record safe categories and run references even when raw candidate capture is disabled. Controlled synthetic runs can preserve their full unsafe candidates in restricted evaluation artifacts for review; those candidates still never appear in normal chat history. Review artifacts before Git commit or demo use, and retain earlier unfavorable results.

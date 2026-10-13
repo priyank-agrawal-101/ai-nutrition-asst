@@ -31,6 +31,7 @@ function request(headers: Record<string, string> = {}, body = "{}") {
   return new Request(`${frontend.APP_ORIGIN}/api/v1/session`, {
     method: "POST",
     headers: {
+      host: new URL(frontend.APP_ORIGIN).host,
       origin: frontend.APP_ORIGIN,
       "content-type": "application/json",
       "x-vercel-forwarded-for": "203.0.113.10",
@@ -40,6 +41,51 @@ function request(headers: Record<string, string> = {}, body = "{}") {
   });
 }
 describe("Production deployment boundaries", () => {
+  it("EC-OPS-04 validates the public host independently of the internal request URL", async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response("{}"));
+    const headers = {
+      host: new URL(frontend.APP_ORIGIN).host,
+      "x-vercel-forwarded-for": "203.0.113.10",
+    };
+    const response = await frontendProxy(
+      new Request("http://localhost:3000/api/v1/health/ready", { headers }),
+      frontend,
+      transport,
+    );
+    expect(response.status).toBe(200);
+    expect(transport.mock.calls[0]?.[0]).toBe(
+      `${frontend.BACKEND_ORIGIN}/api/v1/health/ready`,
+    );
+    transport.mockClear();
+    const log = vi.fn();
+    for (const host of [
+      "evil.example.com",
+      "nutrition.example.com.evil.example",
+      "nutrition.example.com:444",
+      "",
+    ]) {
+      const rejected = await frontendProxy(
+        new Request(`${frontend.APP_ORIGIN}/api/v1/health/ready`, {
+          headers: { ...headers, host, "x-forwarded-host": headers.host },
+        }),
+        frontend,
+        transport,
+        log,
+      );
+      expect(rejected.status).toBe(403);
+      expect(await rejected.text()).toContain('"code":"REQUEST_FORBIDDEN"');
+      expect(log).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          event: "frontend_proxy_failed",
+          stage: "host",
+        }),
+      );
+    }
+    expect(transport).not.toHaveBeenCalled();
+    expect(JSON.stringify(log.mock.calls)).not.toContain("evil.example");
+  });
   it("EC-OPS-10 enables only explicit production backend configuration", () => {
     const config = loadConfig(backend());
     expect(config.cookieName).toBe("__Host-nutrition_session");

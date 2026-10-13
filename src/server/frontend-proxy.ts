@@ -3,31 +3,45 @@ import { randomUUID } from "node:crypto";
 import { canonicalAddress, loadFrontendConfig } from "./deployment";
 import { AppError, publicError, statusFor } from "./errors";
 import { readJson } from "./validation/json";
+import { emit, type Event, type EventSink } from "./telemetry";
 
 // Vercel terminates browser requests. Railway alone owns sessions and model work.
 export async function frontendProxy(
   request: Request,
   env: Readonly<Record<string, string | undefined>>,
   transport: typeof fetch = fetch,
+  log: EventSink = emit,
 ): Promise<Response> {
   let dispatched = false;
+  let stage: Extract<Event, { event: "frontend_proxy_failed" }>["stage"] =
+    "configuration";
   try {
     const config = loadFrontendConfig(env);
     const url = new URL(request.url);
-    if (url.origin !== config.origin || !url.pathname.startsWith("/api/v1/"))
+    // Next.js may construct request.url with an internal server origin. Vercel
+    // preserves the visitor-facing domain in Host; accept only our exact host.
+    stage = "host";
+    if (request.headers.get("host") !== new URL(config.origin).host)
       throw new AppError("REQUEST_FORBIDDEN");
+    stage = "path";
+    if (!url.pathname.startsWith("/api/v1/"))
+      throw new AppError("REQUEST_FORBIDDEN");
+    stage = "method";
     if (!["GET", "POST"].includes(request.method))
       throw new AppError("METHOD_NOT_ALLOWED");
+    stage = "origin";
     if (
       request.method === "POST" &&
       request.headers.get("origin") !== config.origin
     )
       throw new AppError("REQUEST_FORBIDDEN");
     // Vercel overwrites this header. Never trust browser-supplied X-Forwarded-For.
+    stage = "client_address";
     const address = canonicalAddress(
       request.headers.get("x-vercel-forwarded-for"),
     );
     let body: string | undefined;
+    stage = "body";
     if (request.method === "POST") {
       // Consume once: cancelling one branch of a cloned oversized body can wait
       // forever for the unread branch. Validate raw syntax before serialization.
@@ -45,6 +59,7 @@ export async function frontendProxy(
     for (const name of ["cookie", "origin", "x-csrf-token", "content-type"])
       if (request.headers.has(name))
         headers.set(name, request.headers.get(name)!);
+    stage = "upstream";
     dispatched = true;
     const upstream = await transport(
       `${config.backend}${url.pathname}${url.search}`,
@@ -83,6 +98,7 @@ export async function frontendProxy(
             dispatched ? "check_status" : "repeat_request",
           );
     const id = randomUUID();
+    log({ event: "frontend_proxy_failed", request_id: id, stage });
     return Response.json(
       {
         error: publicError(failure),

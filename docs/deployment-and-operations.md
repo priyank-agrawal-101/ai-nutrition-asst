@@ -90,6 +90,16 @@ Confirm Vercel exposes its system environment variables and that the deployed fu
 
 **Exit check:** Vercel serves the frontend from the intended commit, and its `/api/v1/health/ready` reaches the healthy Railway backend. Frontend Preview remains unable to use this production backend.
 
+#### Troubleshooting frontend request verification
+
+On 13 October 2026, the public Railway readiness endpoint returned 200 after the owner configured `npm run db:deploy`; Vercel's homepage returned 200 but its readiness proxy returned 403. This establishes backend readiness, not a completed public chat deployment.
+
+The frontend validates Vercel's visitor-facing `Host` header against the exact host in `APP_ORIGIN`. It does not compare that origin to Next.js's internal request URL, which can use a server-local origin. POST requests still require the exact configured `Origin`; client identity still requires Vercel's canonical client-IP header. Arbitrary forwarded-host headers do not override the host check. See [Vercel's request-header contract](https://vercel.com/docs/headers/request-headers).
+
+For a failed frontend proxy request, inspect Vercel runtime logs for `frontend_proxy_failed` and the response's `request_id`. The `stage` identifies configuration, host, path, method, origin, client address, body, or upstream failure. Logs contain no header values, IP addresses, secrets, bodies, or exception objects. A `host` failure calls for checking the deployed Production origin and domain; `client_address` requires checking platform header handling rather than trusting a browser-supplied IP. A successful health proxy alone does not prove authenticated chat access; verify the session flow before enabling generation.
+
+This compatibility change requires a new GitHub commit and Vercel production deployment. Its effect on the observed hosted 403 remains unverified until that deployment is checked.
+
 ### 6. Verify before opening the app to visitors
 
 First run the configuration, asset, session and access checks below with generation disabled. Record the results against the actual frontend/backend deployment IDs. Fix a deployment defect and repeat the affected check; do not erase stored data or alter nutrition answers to make the smoke test pass.

@@ -77,9 +77,10 @@ function setup() {
     ip = "203.0.113.31",
   ) =>
     frontendProxy(
-      new Request(`${front.APP_ORIGIN}/api/v1/${path}`, {
+      new Request(`http://localhost:3000/api/v1/${path}`, {
         method: body ? "POST" : "GET",
         headers: {
+          host: new URL(front.APP_ORIGIN).host,
           "x-vercel-forwarded-for": ip,
           origin: front.APP_ORIGIN,
           "content-type": "application/json",

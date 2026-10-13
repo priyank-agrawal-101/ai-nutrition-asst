@@ -1,6 +1,6 @@
 # Gusto NutriBite: Phase-wise Implementation Plan
 
-Status: Local implementation, assignment-sized evaluation records and production preparation are recorded. Phase 4 has a final Railway/Vercel deployment plan; cloud deployment and verification remain pending. Human review and consequential factual dispositions remain explicit in their owners. M1 is not publicly deployed.
+Status: Local implementation, assignment-sized evaluation records and production preparation are recorded. Phase 4 deployment is in progress: Railway readiness is verified and Vercel serves the homepage, but the frontend API returns 403. A proxy host compatibility change passes local build, 78 unit tests and 55 integration tests; its deployment and hosted session/chat verification remain pending. See [verification](testing.md#vercel-proxy-host-compatibility-verification). Human review and consequential factual dispositions remain explicit in their owners. M1 public delivery is not complete.
 
 Last updated: 13 October 2026.
 

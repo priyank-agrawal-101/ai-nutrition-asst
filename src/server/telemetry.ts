@@ -2,6 +2,20 @@ import "server-only";
 import { z } from "zod";
 const eventSchema = z.discriminatedUnion("event", [
   z.strictObject({
+    event: z.literal("frontend_proxy_failed"),
+    request_id: z.string().uuid(),
+    stage: z.enum([
+      "configuration",
+      "host",
+      "path",
+      "method",
+      "origin",
+      "client_address",
+      "body",
+      "upstream",
+    ]),
+  }),
+  z.strictObject({
     event: z.literal("request"),
     request_id: z.string().uuid(),
     status: z.number().int(),

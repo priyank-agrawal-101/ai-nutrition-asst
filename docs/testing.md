@@ -374,3 +374,15 @@ Date: **13 October 2026**. Owner-approved screen-fitting layout, followed by mob
 - Initial browser iterations passed 9/10: the 320x640 empty view still overflowed. Mobile cards replaced the crowded stack at the owner's request. An isolated geometry probe then found four surplus pixels from message padding; removing that padding resolved the final welcome overflow. No requirement or overflow assertion was relaxed.
 
 The project app was stopped before rebuilding and restarted afterward at its preserved origin. The served page, both CSS assets, all seven referenced JavaScript assets and both health endpoints returned 200. The existing 22 messages and 31 conversations were preserved. Physical-device keyboard/touch checks, native browser zoom, screen-reader listening and the broader release browser matrix remain unverified; M1 release status is unchanged.
+
+## Vercel proxy host compatibility verification
+
+Date: **13 October 2026**. Railway's public readiness returned 200; Vercel's public readiness returned 403 before this local change. The public homepage loaded. Hosted request headers are not available locally, so the precise deployed rejection stage remains unconfirmed.
+
+- The frontend now validates the public `Host` against `APP_ORIGIN`, independently of the internal Next.js request URL. EC-OPS-04 accepts an internal localhost URL with the correct public host and rejects foreign, suffix-spoofed, missing/empty and unexpected-port hosts even with a matching forwarded-host header. Existing foreign POST-origin and forged client-address rejection tests remain in force.
+- `npm run check` passed: formatting, lint, types, **78 unit tests**, 170 mapped catalogue cases and local documentation links. Production build passed. An initial lint failure in the new assertion was corrected before the passing check.
+- `npm run test:integration` passed **55/55** using PostgreSQL 17 and the scripted provider. Proxy integration fixtures now use an internal request origin with the public host; cookie ownership, CSRF, saved recovery and per-network quotas still pass. Owned database `nutribite_test_d82161fc33a844e68ce2fe2a22bea962` was cleaned.
+- Schema-validated failure telemetry records only the random request ID and failure stage. Public errors and provider behavior are unchanged; no live model calls occurred.
+- The project-local app was stopped before building and restarted afterward. Both health endpoints, the page, two CSS assets and seven JavaScript assets returned 200. CSP nonce matching and the configured-secret scan of served client assets passed. All **26 messages / 38 conversations** were preserved, with zero running attempts.
+
+No browser matrix rerun was needed for this server-only change. Vercel deployment, resolution of the hosted 403 and authenticated hosted session/chat verification remain pending; this is local compatibility evidence, not public-release clearance.

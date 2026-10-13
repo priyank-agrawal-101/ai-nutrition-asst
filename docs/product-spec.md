@@ -129,7 +129,7 @@ General prompt, software, and safety fixes are allowed. Preserve earlier results
 | NEXT-01 | Brief | Keep the interface, endpoints, and response schema unchanged when adding retrieval. | Before finalizing the API contract, confirm sources can hold citation data later without changing the response shape. Milestone 1 still enforces `ANS-02`. |
 | NEXT-02 | Brief | Reuse the same 10 questions for Milestone 2. | Keep question IDs, wording, original responses, run conditions, and observations for comparison. |
 
-Railway alone is selected for the app and PostgreSQL. The brief's deployment tools allow this choice; Vercel is not an additional M1 requirement. Actual account capacity, cost, and hosting behavior still need verification.
+Owner update, 13 October 2026: Vercel hosts the frontend and Railway hosts the backend/PostgreSQL, deploying from the same GitHub repository. This replaces the earlier Railway-only selection without changing the M1 product scope. Actual account capacity, cost, and hosting behavior still need verification.
 
 `api-contract.md` must define a source field that accepts citation data or `null`. Milestone 1 requires `null`; it must not restrict all future versions to `null`.
 

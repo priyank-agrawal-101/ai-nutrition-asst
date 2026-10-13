@@ -1,6 +1,6 @@
 # Gusto NutriBite: Phase-wise Implementation Plan
 
-Status: Phase 1 complete. Phase 2 implemented; human screen-reader sign-off remains pending. Phase 3 baseline/extension capture, review tooling and isolated restore verification are implemented; policy/factual findings and human review prevent clearance. Phase 4 remains pending. M1 is not fully evaluated or publicly deployed.
+Status: Local implementation, assignment-sized evaluation records and production preparation are recorded. Phase 4 has a final Railway/Vercel deployment plan; cloud deployment and verification remain pending. Human review and consequential factual dispositions remain explicit in their owners. M1 is not publicly deployed.
 
 Last updated: 13 October 2026.
 
@@ -26,7 +26,7 @@ The existing [Wise design reference](design-references/wise/DESIGN.md) and [HTML
 - Input, history, output, timeout, retry, and usage bounds; visible errors and durable recovery; desktop, mobile, and keyboard support.
 - Fixed-question evaluation, three fresh consistency samples, safety checks, preserved failure counts, GitHub delivery, and public deployment.
 
-The chosen stack is one Next.js/TypeScript app, PostgreSQL, Drizzle, CSS Modules, Zod, npm, Vitest, Playwright, and Railway hosting. Use one application instance initially. The owner selected Groq on 11 October 2026; Phase 2 pins openai/gpt-oss-120b after live strict-schema probes. Start with one compatible provider/model configuration for classification, generation, and review unless evidence requires a reviewed change.
+The chosen stack is one Next.js/TypeScript codebase, PostgreSQL, Drizzle, CSS Modules, Zod, npm, Vitest and Playwright. Owner update, 13 October: use Vercel for the frontend and Railway for the backend/database, keeping one long-running backend instance initially. The owner selected Groq on 11 October 2026; Phase 2 pins openai/gpt-oss-120b after live strict-schema probes. Start with one compatible provider/model configuration for classification, generation, and review unless evidence requires a reviewed change.
 
 Manual session-wide deletion is deferred as [FB-001](feature-backlog.md#backlog); no deletion endpoint, confirmation UI, deletion receipt, or separate deletion ledger is required in M1. Automatic expiry, security revocation, scoped cleanup, and truthful privacy information remain required. New chat does not delete history.
 
@@ -169,13 +169,17 @@ Keep the short [assignment comparison](problem-statement-alignment.md) as the re
 
 ### Phase 4 — Deploy, verify, and close M1
 
-**Status:** Not started. **Depends on:** Phase 3 pre-deployment clearance, approved hosting/provider spend, verified configuration/retention, and operator responsibility.
+**Status:** In progress: local production preparation; owner will deploy. **Depends on for public release:** Phase 3 release disposition, approved hosting/provider spend, verified platform configuration/retention and operator responsibility. Independent deployment preparation proceeds without altering M1 model findings.
+
+**Final execution plan, 13 October 2026:** [Deploy with Railway and Vercel](deployment-and-operations.md#deploy-with-railway-and-vercel) owns the ordered steps, exit checks, variable relationships, CI/container prerequisite, live smoke boundary, shutdown/rollback procedure and release record. Complete that record during deployment; do not duplicate platform instructions here. This planning update authorizes no cloud action and changes no model behavior.
 
 **Objective:** Deliver the assignment at a verified public URL.
 
 **Tasks**
 
-- [ ] Deploy the app and PostgreSQL to Railway with controlled migrations and server-only secrets.
+- [x] Prepare explicit frontend/backend roles, secure cookies, authenticated same-origin forwarding, canonical network quotas, production startup, database provisioning and GitHub-linked deployment files.
+- [x] Finalize the owner-led deployment plan and distinguish local evidence from pending container/platform verification.
+- [ ] Deploy the backend/PostgreSQL to Railway and frontend to Vercel using the same reviewed repository commit, controlled migrations and server-only secrets.
 - [ ] Verify HTTPS, cookies, Origin/CSRF, security headers, readiness, and actual proxy timeouts.
 - [ ] Verify cleanup scheduling, safe logs, budget alerts, generation shutdown, backup retention, and recovery procedures.
 - [ ] Complete an external-browser real chat, required refusal, refresh/recovery, and empty-sources check.
@@ -203,7 +207,7 @@ Use checkboxes and short evidence notes in this plan. Task statuses are **Not st
 | 1 — Durable local chat foundation | Done: locally built and tested | [Phase 1 evidence](testing.md#phase-1-implementation-evidence): 19 unit, 20 integration, 2 Chromium; clean install/build and launcher health passed |
 | 2 — Complete local assistant | In progress: implemented; manual accessibility review pending | [Phase 2 evidence](testing.md#phase-2-implementation-evidence): Groq adapter/safety/UI, 58 unit, 38 integration, 10 Chromium tests; live probes and stored follow-up; screen-reader sign-off still required |
 | 3 — Evaluation and release clearance | Assignment records completed by model-assisted review; release disposition pending | [Ten-question counts, consistency and required refusals](failure-log.md#assignment-baseline-review-13-october-2026); consequential factual findings and public readiness remain explicit |
-| 4 — Deploy and verify | Not started | None |
+| 4 — Deploy and verify | In progress: production preparation, not deployed | [Railway/Vercel setup](deployment-and-operations.md#deploy-with-railway-and-vercel); final local checks recorded in testing |
 
 The subsequent [status and rate-limit repair](testing.md#status-and-rate-limit-repair-evidence) passed 61 unit, 45 integration and 9 Chromium tests (including all four viewport widths). It adds specific failure messages, durable cooldown and pre-acceptance quota checks. Original adverse observations remain in the failure log; this repair does not resolve the separate output-review diagnostic question or complete screen-reader sign-off.
 

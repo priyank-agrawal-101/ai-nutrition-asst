@@ -35,6 +35,7 @@ import type { TurnService } from "./turn-service";
 import type { EventSink } from "./telemetry";
 import migrationManifest from "./db/migration-manifest.json";
 import { latestSavedConversation } from "./db/conversations";
+import { networkIdentity } from "./deployment";
 
 export function createHandler(
   database: Database,
@@ -208,8 +209,7 @@ export function createHandler(
                 : null;
       if (post && requestSchema && !requestSchema.safeParse(body).success)
         throw new AppError("VALIDATION_FAILED");
-      // Only loopback/test profiles exist in Phase 1. Forwarded headers are deliberately ignored.
-      const network = "loopback";
+      const network = networkIdentity(request, config);
       const token = cookieToken(request, config);
       let session = await getSession(database.db, token);
       await database.transaction("read_quota", async (db) => {
@@ -222,7 +222,7 @@ export function createHandler(
         if (established.token)
           headers.set(
             "Set-Cookie",
-            `${config.cookieName}=${established.token}; HttpOnly; SameSite=Lax; Path=/; Expires=${new Date(session.expires_at).toUTCString()}`,
+            `${config.cookieName}=${established.token}; HttpOnly; SameSite=Lax; Path=/; Expires=${new Date(session.expires_at).toUTCString()}${config.environment === "production" ? "; Secure" : ""}`,
           );
         response = success(
           sessionSchema,

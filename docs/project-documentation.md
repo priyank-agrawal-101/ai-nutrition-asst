@@ -2,7 +2,7 @@
 
 Last updated: 13 October 2026.
 
-**Current stage:** The local app is built and tested. The assignment evaluation now has model-assisted per-question counts, a three-answer substance/numeric comparison and 16/16 required refusals. Known factual, quality and extension failures are preserved for M2, without question-specific patches. Consequential food-safety release disposition, public-hosting preparation and deployed verification remain outstanding. Additional human accessibility review is unperformed. The [implementation plan](phase-wise-implementation-plan.md) owns phase status.
+**Current stage:** The local app and Railway/Vercel production support are built and tested. The assignment evaluation has model-assisted per-question counts, a three-answer substance/numeric comparison and 16/16 required refusals. Known factual, quality and extension failures are preserved for M2. The owner will deploy the prepared code; container/cloud verification, platform settings and the consequential food-safety release disposition remain outstanding. Additional human accessibility review is unperformed. The [implementation plan](phase-wise-implementation-plan.md) owns phase status.
 
 ## Our approach
 
@@ -53,7 +53,15 @@ Phase 1 implementation, 11 October 2026: created the single pinned Next.js app a
 
 ## Next step
 
-Proceed with Railway delivery preparation and the consequential food-safety release disposition. The [assignment review](failure-log.md#assignment-baseline-review-13-october-2026) is recorded; do not start another correction/regression cycle just to erase model findings. Preserve stored data and the M1 baseline for M2, and distinguish recorded evaluation from human validation and public deployment.
+The owner can execute the [final Railway/Vercel deployment plan](deployment-and-operations.md#deploy-with-railway-and-vercel), starting with the reviewed GitHub commit and CI/container result. Each subsequent step has an exit check; complete the release record before claiming public delivery. Keep the consequential food-safety release disposition explicit. Preserve stored data and the M1 baseline; deployment work does not authorize a model correction campaign.
+
+## 13 October 2026: Finalize the deployment plan
+
+Consolidated the current Railway/Vercel sequence in the operations document, added readiness and per-step exit checks, separated disabled-generation setup from live verification, and added the non-secret release record and production shutdown/rollback instructions. Corrected stale statements that production was unconditionally disabled or commands were not implemented. Kept original evaluation failures and the owner's contact/ZDR decisions intact. This was documentation-only work: no build, model call, commit, push or deployment.
+
+## 13 October 2026: Prepare Railway backend and Vercel frontend
+
+Kept one Next.js repository and added explicit deployment roles, an authenticated same-origin API proxy, production cookies, canonical network quotas, nonce CSP, Railway startup and idempotent restricted database provisioning. Added deployment files and separate variable templates, with a step-by-step owner handoff. The build, 77 unit checks, 55 integration tests and 40 browser flows passed; local data and served assets were verified after restart. No cloud resource, live model call, commit or push was made. Docker/cloud execution remains pending and the original model findings are retained.
 
 ## 13 October 2026: Complete the assignment failure record
 

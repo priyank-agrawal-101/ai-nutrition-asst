@@ -319,7 +319,8 @@
       "id": "EC-INPUT-07",
       "tests": [
         "tests/integration/foundation.test.ts",
-        "tests/unit/contracts.test.ts"
+        "tests/unit/contracts.test.ts",
+        "tests/unit/deployment.test.ts"
       ],
       "status": "case-linked; inspect covered variants"
     },
@@ -558,8 +559,11 @@
     },
     {
       "id": "EC-OPS-04",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/deployment.test.ts",
+        "tests/unit/deployment.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-OPS-05",
@@ -593,12 +597,18 @@
     },
     {
       "id": "EC-OPS-10",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/deployment-database.test.ts",
+        "tests/unit/deployment.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-OPS-11",
-      "tests": ["tests/recovery/restore.test.ts"],
+      "tests": [
+        "tests/integration/deployment-database.test.ts",
+        "tests/recovery/restore.test.ts"
+      ],
       "status": "case-linked; inspect covered variants"
     },
     {
@@ -759,14 +769,19 @@
     },
     {
       "id": "EC-SEC-05",
-      "tests": ["tests/integration/foundation.test.ts"],
+      "tests": [
+        "tests/integration/deployment.test.ts",
+        "tests/integration/foundation.test.ts"
+      ],
       "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-SEC-06",
       "tests": [
+        "tests/integration/deployment.test.ts",
         "tests/integration/foundation.test.ts",
-        "tests/unit/contracts.test.ts"
+        "tests/unit/contracts.test.ts",
+        "tests/unit/deployment.test.ts"
       ],
       "status": "case-linked; inspect covered variants"
     },
@@ -787,8 +802,8 @@
     },
     {
       "id": "EC-SEC-10",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/unit/deployment.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-SEC-11",
@@ -893,8 +908,11 @@
     },
     {
       "id": "EC-UI-06",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": [
+        "tests/integration/deployment.test.ts",
+        "tests/unit/deployment.test.ts"
+      ],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-UI-07",

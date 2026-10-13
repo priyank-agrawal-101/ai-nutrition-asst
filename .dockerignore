@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+.tmp
+.cache
+.npm
+.preview-work
+.next
+node_modules
+test-results
+playwright-report
+blob-report
+coverage
+*.log
+*.tsbuildinfo

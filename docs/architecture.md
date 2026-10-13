@@ -26,7 +26,7 @@ The local/test profile accepts only loopback origins and a scripted provider. Pr
 
 ## 2. Selected stack and scope
 
-Build one Next.js application with server modules separated by responsibility. Use a PostgreSQL database and a model-provider adapter. Deploy the application and database on Railway. This keeps the browser and API on one origin and avoids operating a separate frontend and backend for this prototype.
+Keep one Next.js codebase with server modules separated by responsibility, PostgreSQL and a model-provider adapter. Owner update, 13 October 2026: deploy the frontend on Vercel and the backend/database on Railway from the same GitHub repository. The browser uses same-origin API URLs through the authenticated Vercel proxy. Deployment roles prevent the frontend from initializing database/provider work; operations owns the exact setup.
 
 | Area | Selected baseline | Reason and tradeoff |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ Build one Next.js application with server modules separated by responsibility. U
 | Database | PostgreSQL in local development, tests, and production | Transactions and constraints support ownership, ordering, and duplicate prevention. Use a dedicated local database; do not use another project's database. |
 | Database access | Drizzle ORM and versioned SQL migrations | Keep normal queries typed while allowing explicit locking and database constraints. |
 | Model integration | OpenAI API as the first provider candidate, behind a server-only adapter | A concrete starting point from the brief's options. Exact model and endpoint stay open until structured-output compatibility, access, privacy, quality, latency, and cost checks pass. |
-| Hosting | Railway application service and PostgreSQL service | A long-running Node service fits this lifecycle. Railway alone is selected; Vercel is not an additional brief requirement. |
+| Hosting | Vercel frontend, Railway backend and PostgreSQL | One repository, two deployment roles. The backend is a long-running Node service; Vercel forwards same-origin API requests without database/provider credentials. |
 | Automated checks | Vitest for unit/integration tests; Playwright for browser tests; GitHub Actions for CI | Test behavior at schema, database, and browser boundaries. Live model evaluation remains a separate activity. |
 | Package management | npm with a committed lockfile | Reproducible installation without adding another tool. |
 
@@ -74,7 +74,8 @@ flowchart LR
     end
     DB[(PostgreSQL)]
     Model[External model API]
-    UI -->|Same-origin HTTPS| API
+    UI -->|Same-origin HTTPS| Proxy[Vercel frontend and API proxy]
+    Proxy -->|Authenticated HTTPS| API
     Recovery --> UI
     API --> Session
     Session --> Turn

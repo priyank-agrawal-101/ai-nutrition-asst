@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+// Each rendered page receives a fresh CSP nonce from the request proxy.
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Gusto NutriBite · Your food questions, answered",
   description:

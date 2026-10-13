@@ -3,12 +3,15 @@ import { z } from "zod";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { LIMITS } from "@/contracts/api";
+import { productionOrigin, proxyKey } from "./deployment";
 const key = z
   .string()
   .regex(/^[A-Za-z0-9_-]{43}$/)
   .refine((s) => Buffer.from(s, "base64url").toString("base64url") === s);
 const envSchema = z.object({
   APP_ENV: z.enum(["local", "test", "production"]),
+  APP_ROLE: z.enum(["combined", "backend", "frontend"]).default("combined"),
+  PROXY_SHARED_SECRET: proxyKey.optional(),
   APP_ORIGIN: z.url(),
   PROVIDER_MODE: z.enum(["scripted", "groq"]),
   GROQ_API_KEY: z.string().optional(),
@@ -32,26 +35,45 @@ export function loadConfig(env: Readonly<Record<string, string | undefined>>) {
   const origin = new URL(e.APP_ORIGIN);
   if (
     origin.origin !== e.APP_ORIGIN ||
-    e.APP_ENV === "production" ||
-    !["127.0.0.1", "localhost", "[::1]"].includes(origin.hostname)
+    (e.APP_ENV !== "production" &&
+      !["127.0.0.1", "localhost", "[::1]"].includes(origin.hostname))
   )
     throw new Error(
-      "Only isolated local/test operation is enabled until release clearance",
+      "Configure an exact origin; local/test operation requires loopback",
     );
+  if (e.APP_ROLE === "frontend")
+    throw new Error("The frontend must not initialize the backend");
+  if (e.APP_ENV === "production") {
+    productionOrigin.parse(e.APP_ORIGIN);
+    if (
+      e.APP_ROLE !== "backend" ||
+      !e.PROXY_SHARED_SECRET ||
+      e.PROVIDER_MODE !== "groq"
+    )
+      throw new Error(
+        "Production requires backend role, proxy authentication and Groq",
+      );
+  }
   if (
     e.PROVIDER_MODE === "groq" &&
-    (e.APP_ENV !== "local" || !e.GROQ_API_KEY?.trim())
+    (e.APP_ENV === "test" || !e.GROQ_API_KEY?.trim())
   )
     throw new Error(
-      "Groq requires a local API key; normal tests must use scripted mode",
+      "Groq requires a server API key; normal tests must use scripted mode",
     );
   const keys = z
     .record(z.string().regex(/^[a-zA-Z0-9_-]{1,32}$/), key)
     .parse(JSON.parse(e.CSRF_KEYS) as unknown);
-  if (!keys[e.CSRF_ACTIVE_KEY] || Object.values(keys).includes(e.QUOTA_KEY))
+  if (
+    !keys[e.CSRF_ACTIVE_KEY] ||
+    Object.values(keys).includes(e.QUOTA_KEY) ||
+    (e.PROXY_SHARED_SECRET &&
+      [e.QUOTA_KEY, ...Object.values(keys)].includes(e.PROXY_SHARED_SECRET))
+  )
     throw new Error("Security keys must be present and independent");
   return Object.freeze({
     environment: e.APP_ENV,
+    proxySecret: e.PROXY_SHARED_SECRET,
     providerMode: e.PROVIDER_MODE,
     groqApiKey: e.PROVIDER_MODE === "groq" ? e.GROQ_API_KEY : undefined,
     providerBudget: {
@@ -100,7 +122,10 @@ export function loadConfig(env: Readonly<Record<string, string | undefined>>) {
     }),
     contextMaxTokens: Number(8000),
     sessionSeconds: 604800,
-    cookieName: "nutribite_local_session",
+    cookieName:
+      e.APP_ENV === "production"
+        ? "__Host-nutrition_session"
+        : "nutribite_local_session",
   });
 }
 export type Config = ReturnType<typeof loadConfig>;

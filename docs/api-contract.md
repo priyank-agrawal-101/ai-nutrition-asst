@@ -39,6 +39,8 @@ An intermediary may still return a non-JSON error or drop a connection. The clie
 
 ### Session and CSRF rules
 
+Deployment update, 13 October 2026: the browser retains same-origin `/api/v1/*` requests on Vercel. A server-only proxy authenticates to Railway using an independent shared secret and forwards Vercel's canonical visitor address. These private transport headers are not browser credentials or public request fields. Railway rejects unauthenticated non-health requests before session access; exact Origin and CSRF checks still apply. The proxy preserves private/no-store responses, cookies and recovery semantics and never retries a mutation. The wire schemas and M1 null-source requirement are unchanged.
+
 Use the anonymous cookie session described in [the architecture](architecture.md#4-conversation-and-session-design). The production cookie name is `__Host-nutrition_session`, with `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, and no `Domain`. A separately named local-development cookie may omit `Secure`; it must never be used in production.
 
 All conversation, turn, submission-status, and retry endpoints require a live session and a server-side ownership check. Missing, invalid, expired, and revoked sessions receive the same `401 SESSION_UNAVAILABLE`. Do not create a replacement session as a side effect of these requests.

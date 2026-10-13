@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "node scripts/local.mjs",
     "start": "next start --hostname 127.0.0.1",
+    "start:production": "node scripts/start-production.mjs",
     "build": "node scripts/build.mjs",
     "generation:off": "node scripts/generation.mjs off",
     "generation:on": "node scripts/generation.mjs on",
@@ -22,6 +23,7 @@
     "eval:groq": "node scripts/live-regression.mjs",
     "eval:report": "node scripts/run-ts.mjs scripts/evaluation-report.ts",
     "db:migrate": "node scripts/migrate.mjs",
+    "db:deploy": "node scripts/deploy-database.mjs",
     "maintenance": "node scripts/run-ts.mjs scripts/maintenance.ts",
     "check:format": "prettier --check src tests scripts migrations *.json *.mjs *.ts .github/workflows/ci.yml",
     "check:lint": "eslint src tests scripts",

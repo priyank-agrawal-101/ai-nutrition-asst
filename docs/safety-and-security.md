@@ -311,6 +311,8 @@ Milestone 1 makes no retrieval or arbitrary URL-fetch calls. Milestone 2 must pr
 
 ## 11. Verification, incidents, and release gates
 
+Production preparation, 13 October 2026: [operations](deployment-and-operations.md#deploy-with-railway-and-vercel) owns the owner-selected Vercel/Railway setup. The frontend holds an independent server-only proxy key, accepts the exact production origin, rejects preview access, and derives the visitor address only from Vercel's platform header. It overwrites incoming private proxy headers. Railway requires that key before trusting the forwarded canonical address or accessing sessions; existing quotas store only keyed digests. The production cookie follows the API's `__Host-nutrition_session` contract. CSP uses per-request script nonces. Database/provider/CSRF/quota credentials remain solely on Railway. Local scripted verification does not establish deployed platform behavior or change the recorded model-failure dispositions.
+
 ### Safety and security verification
 
 These checks are required evidence for the adopted scope. They are not passing results. The exact questions, scoring, and procedures belong in the later evaluation/testing documents.

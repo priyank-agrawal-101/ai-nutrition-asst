@@ -1,8 +1,11 @@
-import { getApplication } from "@/server/runtime";
+import { frontendProxy } from "@/server/frontend-proxy";
 import { randomUUID } from "node:crypto";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 90;
 export async function GET(request: Request): Promise<Response> {
+  if (process.env.APP_ROLE === "frontend")
+    return frontendProxy(request, process.env);
   // Liveness remains available when configuration/storage is broken.
   if (
     new URL(request.url).pathname === "/api/v1/health/live" &&
@@ -21,6 +24,7 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
   try {
+    const { getApplication } = await import("@/server/runtime");
     const app = await getApplication();
     return await app.handler(request);
   } catch {
@@ -29,7 +33,7 @@ export async function GET(request: Request): Promise<Response> {
       {
         error: {
           code: "SERVICE_NOT_READY",
-          message: "The local service is not configured.",
+          message: "The service is not configured.",
           operation_state: "not_applicable",
           field_errors: [],
           recovery: {

@@ -37,5 +37,6 @@ jobs:
         env:
           POSTGRES_TOOLS_DIR: /usr/lib/postgresql/17/bin
       - run: npm run build
+      - run: docker build --tag nutribite-release-check .
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:browser-matrix

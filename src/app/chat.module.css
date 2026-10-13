@@ -290,6 +290,37 @@
   color: var(--body);
   margin-bottom: 7px;
 }
+.claims {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.65;
+  white-space: normal;
+}
+.claims summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--body);
+  padding: 4px 0;
+}
+.claims ul {
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+.claims li {
+  margin: 0 0 14px;
+}
+.claims p {
+  margin: 4px 0;
+  white-space: pre-wrap;
+}
+.claims small {
+  color: var(--body);
+  font-size: 12px;
+}
+.claims code {
+  font: inherit;
+  color: var(--ink);
+}
 .assistant .label {
   color: #35745e;
 }

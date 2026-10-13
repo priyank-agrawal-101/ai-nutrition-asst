@@ -170,30 +170,39 @@ export default function Chat() {
       handleError(error);
     }
   }, [adopt, handleError, save]);
-  const newChat = useCallback(async () => {
-    setState("loading");
-    setMessage("");
-    try {
-      let s = await api("session", sessionSchema, undefined, {});
-      s = await api("session", sessionSchema);
-      setSession(s);
-      const creation = marker.current.creation_id ?? crypto.randomUUID();
-      save({
-        ...(active.current ? { conversation_id: active.current } : {}),
-        creation_id: creation,
-      });
-      const c = await api("conversations", conversationSchema, s.csrf_token, {
-        client_conversation_id: creation,
-      });
-      active.current = c.id;
-      save({ conversation_id: c.id });
-      setConversation(c);
-      setDraft("");
-      setState("ready");
-    } catch (error) {
-      handleError(error);
-    }
-  }, [handleError, save]);
+  const newChat = useCallback(
+    async (restore = false) => {
+      setState("loading");
+      setMessage("");
+      try {
+        let s = await api("session", sessionSchema, undefined, {});
+        s = await api("session", sessionSchema);
+        setSession(s);
+        if (restore && s.latest_conversation_id) {
+          active.current = s.latest_conversation_id;
+          save({ conversation_id: s.latest_conversation_id });
+          await check();
+          return;
+        }
+        const creation = marker.current.creation_id ?? crypto.randomUUID();
+        save({
+          ...(active.current ? { conversation_id: active.current } : {}),
+          creation_id: creation,
+        });
+        const c = await api("conversations", conversationSchema, s.csrf_token, {
+          client_conversation_id: creation,
+        });
+        active.current = c.id;
+        save({ conversation_id: c.id });
+        setConversation(c);
+        setDraft("");
+        setState("ready");
+      } catch (error) {
+        handleError(error);
+      }
+    },
+    [check, handleError, save],
+  );
   useEffect(() => {
     if (mounted.current) return;
     mounted.current = true;
@@ -208,13 +217,8 @@ export default function Chat() {
       if (marker.current.creation_id) await newChat();
       else if (marker.current.conversation_id) {
         active.current = marker.current.conversation_id;
-        try {
-          setSession(await api("session", sessionSchema));
-          await check();
-        } catch (error) {
-          handleError(error);
-        }
-      } else await newChat();
+        await check();
+      } else await newChat(true);
     })();
   }, [check, handleError, newChat]);
   useEffect(() => {
@@ -415,6 +419,26 @@ export default function Chat() {
                 ? "Your conversation"
                 : "Let’s dig in"}
             </span>
+            {state === "ready" &&
+              conversation?.turn_count === 0 &&
+              session?.latest_conversation_id &&
+              session.latest_conversation_id !== conversation.id && (
+                <button
+                  className={styles.infoButton}
+                  disabled={!!draft.trim()}
+                  onClick={() => {
+                    const savedId = session.latest_conversation_id;
+                    if (!savedId) return;
+                    active.current = savedId;
+                    save({ conversation_id: active.current });
+                    setState("loading");
+                    setMessage("");
+                    void check();
+                  }}
+                >
+                  Resume last saved chat
+                </button>
+              )}
             {scripted && (
               <span className={styles.badge}>Scripted test mode</span>
             )}
@@ -482,6 +506,28 @@ export default function Chat() {
                           : ""}
                     </span>
                     {t.assistant_message.content.answer}
+                    <details className={styles.claims}>
+                      <summary>
+                        Claims ({t.assistant_message.content.claims.length})
+                      </summary>
+                      {t.assistant_message.content.claims.length ? (
+                        <ul>
+                          {t.assistant_message.content.claims.map(
+                            (claim, index) => (
+                              <li key={index}>
+                                <p>{claim.text}</p>
+                                <small>
+                                  Source:{" "}
+                                  <code>{JSON.stringify(claim.source)}</code>
+                                </small>
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      ) : (
+                        <p>No factual claims were included in this response.</p>
+                      )}
+                    </details>
                   </article>
                 )}
                 {t.failure && (
@@ -531,7 +577,7 @@ export default function Chat() {
                   onClick={() => {
                     if (marker.current.creation_id) void newChat();
                     else if (active.current) void check();
-                    else void newChat();
+                    else void newChat(true);
                   }}
                 >
                   Check again
@@ -659,8 +705,8 @@ export default function Chat() {
           </div>
           {storageWarning && (
             <p role="status" className={styles.error}>
-              Browser recovery storage is unavailable. Refresh recovery may be
-              limited.
+              Browser tab storage is unavailable. Your most recent saved chat
+              can still be restored while this browser session remains active.
             </p>
           )}
         </section>

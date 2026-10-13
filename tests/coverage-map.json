@@ -865,7 +865,10 @@
     },
     {
       "id": "EC-UI-01",
-      "tests": ["tests/browser/chat.spec.ts"],
+      "tests": [
+        "tests/browser/chat.spec.ts",
+        "tests/integration/foundation.test.ts"
+      ],
       "status": "case-linked; inspect covered variants"
     },
     {

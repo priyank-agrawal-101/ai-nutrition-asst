@@ -75,6 +75,7 @@ References: [Conversation](product-spec.md#conversation) (`CHAT-01`, `CHAT-04`),
 
 1. Open the public app URL. These flows use the adopted anonymous scope without registration.
 2. If the browser has an active conversation, show a loading state and follow UX-07. Otherwise, show an empty message list.
+   When the tab reference is missing, first use the live session's `latest_conversation_id` to restore its most recent saved conversation. Create an empty conversation only when no saved one exists. A read failure stays an error with **Check again**, never a reason to silently create an empty chat.
 3. Show the input, starter questions and **About this chat** control. Sources remain available inside that panel.
 4. Enable submission when the conversation is ready.
 
@@ -86,7 +87,7 @@ References: [Conversation](product-spec.md#conversation) (`CHAT-01`, `CHAT-05`�
 
 1. The user types and selects **Send**. With `CHAT-06`, empty or oversized input stays in the field with an explanation; no request is sent for generation.
 2. Once submitted, show the question once and a waiting message: "Preparing an answer…" Disable **Send** and **New chat** while the request is active. Keep the question recoverable if it fails.
-3. On success, replace the waiting message with the completed answer. Show readable answer text, not raw response data.
+3. On success, replace the waiting message with the completed answer. Show readable answer text and an expandable **Claims (count)** list beneath it. Each entry displays the stored claim text and source value (`null` in M1). For an empty array, show “No factual claims were included in this response.” This renders the validated, committed object; it does not derive claims from the answer or generate new content.
 4. Re-enable the controls for the next question. For a refusal, use UX-04; for an error, use UX-08.
 
 Do not display partial generated text before response checks pass. Show success only after the app confirms completion, including required storage. The exact server sequence belongs in architecture.
@@ -137,12 +138,15 @@ References: [Conversation](product-spec.md#conversation) (`CHAT-03`, `CHAT-04`, 
 | Situation | Visible behavior and next step |
 | --- | --- |
 | Active session and saved messages | Show "Loading conversation…", then restore messages in order and enable the input. |
+| Tab reference missing, corrupt or browser storage unavailable | Restore the same anonymous session's most recently updated non-empty saved conversation through session metadata and an authorized read. Do not automatically submit or retry. A missing/expired session cookie cannot recover another session's messages. |
 | Refresh while an answer was pending | Check the existing request before allowing another attempt. Restore a completed response once, resume waiting if still active, or show its failure. Never resend automatically on page load. |
 | Outcome cannot yet be confirmed | Explain that the previous request's status is unknown. Offer **Check again** to refresh its status, not generate another answer. |
 | History service unavailable | Show "Couldn't load this conversation." Offer **Try loading again**. Keep any visible messages; do not present the failure as a new chat. |
 | Session expired or chat unavailable to this visitor | Show "This conversation is unavailable. Start a new chat to continue." Do not expose another visitor's messages. |
 
 Do not promise recovery of unsent text after a reload. Session access is seven days absolute. Follow the [API recovery sequence](api-contract.md#9-client-recovery-sequence) for pending requests; status checks never start generation.
+
+An existing tab reference wins over the fallback, so an explicit **New chat** remains empty across refresh. An empty chat with older saved content offers **Resume last saved chat**, using reads only; it is disabled while a draft exists. This also recovers from empty chats created by the earlier startup behavior. It exposes one recovery action, not a history browser or manual deletion facility.
 
 ## UX-08: Recover from an error
 
@@ -181,7 +185,7 @@ References: [Backend and usability](product-spec.md#backend-and-usability) (`SYS
 | Implement the adopted mixed, ambiguous, unrelated, urgent, and sensitive rules | Safety and security; prompt spec owns templates |
 | Final copy, mobile placement, and accessibility | Positioning for voice; visual direction above for presentation; prompt specification for assistant wording |
 
-Use the [efficiency guide](token-optimization-and-efficiency.md) when setting limits and retries. These flows add no evaluation dashboard or claims-inspection screen; evaluator procedures belong in `evaluation.md`.
+Use the [efficiency guide](token-optimization-and-efficiency.md) when setting limits and retries. The inline claims disclosure exposes the response contract without adding an evaluation dashboard; evaluator procedures belong in `evaluation.md`. The owner requested visibility of the PRD's answer/claims/source structure on 13 October 2026. Collapsing the disclosure does not remove claims from the stored or API response.
 
 Follow the [implementation plan](phase-wise-implementation-plan.md); no duplicate design-guide task is required. Record remaining presentation choices here or in testing/code as appropriate. Show a truthful storage/provider notice before collecting messages, without a manual-deletion promise.
 

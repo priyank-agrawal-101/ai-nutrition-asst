@@ -106,6 +106,7 @@ type ClientLimits = {
 };
 
 type SessionView = {
+  latest_conversation_id: UUID | null;
   expires_at: Timestamp;
   csrf_token: string;
   limits: ClientLimits;
@@ -116,6 +117,8 @@ type SessionView = {
 ```
 
 All limits are positive integers. Initial default values are `2000`, `16384`, `20`, `3`, and `60`, respectively, from [the architecture configuration](architecture.md#initial-configuration-defaults). The server returns effective values; clients must not hardcode these examples. Session expiry remains seven days absolute under the adopted architecture default; reading or reusing the session does not extend it.
+
+`latest_conversation_id` is the most recently updated conversation with at least one accepted turn belonging to this live anonymous session, or `null` when none exists. It is derived from owned stored conversations, not supplied by the client. Empty conversations are skipped; ties use creation time and ID. It lets startup recover saved messages when tab storage is missing/unavailable. An existing valid tab reference takes precedence, including an explicitly created empty chat. The client reads the selected conversation through the ordinary authorized endpoint; lookup never submits or retries a turn. It is not a cross-session lookup or a history-list endpoint.
 
 The CSRF token is an opaque base64url string of 43–128 characters. No raw session token, session database ID, provider setting, token budget, or secret appears in this response. Internal context and model limits stay on the server.
 
@@ -509,7 +512,7 @@ flowchart TD
 ```
 
 1. Before a POST, persist the active conversation ID and relevant client operation IDs in `sessionStorage`. On retry, retain the failed attempt ID as well. Keep one visible question. The server remains authoritative if browser storage is unavailable.
-2. On refresh, validate the existing session, then load the conversation and check the saved operation marker. Never send a generation POST automatically on page load.
+2. On refresh, validate the existing session, then load the conversation and check the saved operation marker. If no usable tab marker exists, establish/reuse the anonymous session and read `latest_conversation_id`; restore that conversation before considering creation of a new empty chat. Preserve a valid tab reference even when it points to an explicitly created empty chat. Never send a generation POST automatically on page load.
 3. If the turn ID is unknown, use the submission lookup. If recorded, adopt its server turn ID and merge the snapshot by revision. If unrecorded, an explicit resend uses the same ID and retained question. If the text was not saved and is no longer available after reload, explain that it cannot be recovered; do not invent or automatically resubmit it.
 4. Poll running state every two seconds initially, backing off to five seconds after ten seconds. Stop automatic polling after 70 seconds from the start of that recovery window and offer Check again. These timings implement the architecture's polling defaults. Respect a larger `Retry-After` if provided.
 5. A client timer never marks the stored attempt failed. Only the server can reconcile its database deadline. Check again can run after automatic polling stops without starting generation.

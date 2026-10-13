@@ -585,3 +585,5 @@ Answer content is limited to 65,536 input bytes and each verdict to 4,096, decod
 Expiry is the earlier of capture plus 24 hours and session expiry. Maintenance removes expired captures and removes all associated captures before purging a session; a new capture also purges expired rows. At most the newest 100 records are retained, serialized by a separate advisory lock. `diagnostics:purge` removes only this table's contents; normal chat deletion remains deferred. See [operations](deployment-and-operations.md#temporary-local-diagnostics) for enablement, access and cleanup timing.
 
 Migrations now run in manifest order and readiness requires every matching checksum. The original 0001 bytes are unchanged. This is an additive upgrade; it never resets local conversations.
+
+The session API's `latest_conversation_id` is derived on read from this session's live, non-empty conversations ordered by `updated_at`, then `created_at` and ID. No new persistent cursor, migration or history copy is introduced. It provides a fallback when the browser's tab marker is lost; normal conversation reads still enforce session ownership and expiry.

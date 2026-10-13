@@ -30,6 +30,7 @@ import {
 import { configEnv } from "../support/config";
 import { AppError } from "../../src/server/errors";
 import { seedTurn } from "../support/seed-turn";
+import { latestSavedConversation } from "../../src/server/db/conversations";
 let db: Database, admin: Database;
 const config = loadConfig(configEnv());
 beforeAll(() => {
@@ -79,6 +80,29 @@ async function count(
 }
 
 describe("Durable PostgreSQL lifecycle", () => {
+  it("EC-UI-01 EC-SEC-05 saved-chat fallback is owned, skips empty chats and excludes revoked sessions", async () => {
+    const a = await setup();
+    const b = await setup(new ScriptedProvider([]));
+    expect(await latestSavedConversation(db.db, a.session.id)).toBeNull();
+    await a.service.submit(
+      a.session.id,
+      a.conversation.id,
+      randomUUID(),
+      "Saved recovery fixture",
+      a.network,
+    );
+    await a.service.create(a.session.id, randomUUID(), a.network);
+    expect(await latestSavedConversation(db.db, a.session.id)).toBe(
+      a.conversation.id,
+    );
+    expect(await latestSavedConversation(db.db, b.session.id)).toBeNull();
+    await admin.db.execute(
+      sql`update sessions set revoked_at=clock_timestamp() where id=${a.session.id}`,
+    );
+    expect(await latestSavedConversation(db.db, a.session.id)).toBeNull();
+    a.provider.done();
+    b.provider.done();
+  });
   it("EC-DATA-06/07 expired access is denied before scoped automatic purge", async () => {
     const a = await setup(),
       b = await setup(new ScriptedProvider([]));
@@ -92,6 +116,7 @@ describe("Durable PostgreSQL lifecycle", () => {
     await admin.db.execute(
       sql`update sessions set created_at=clock_timestamp()-interval '8 days',expires_at=clock_timestamp()-interval '1 second' where id=${a.session.id}`,
     );
+    expect(await latestSavedConversation(db.db, a.session.id)).toBeNull();
     await expect(
       a.service.read(a.session.id, a.conversation.id),
     ).rejects.toMatchObject({ code: "SESSION_UNAVAILABLE" });

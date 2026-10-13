@@ -6,10 +6,22 @@ import {
   type ConversationView,
   LIMITS,
   failureCodes,
+  uuid,
 } from "@/contracts/api";
 import { type Db, rows, dateValue, intValue } from "./connection";
 import { lockSession } from "../security";
 import { AppError, safeMessage } from "../errors";
+export async function latestSavedConversation(
+  db: Db,
+  sessionId: string,
+): Promise<string | null> {
+  const [conversation] = await rows(
+    db,
+    sql`select c.id from conversations c join sessions s on s.id=c.session_id where s.id=${sessionId} and s.revoked_at is null and s.expires_at>clock_timestamp() and exists(select 1 from turns t where t.conversation_id=c.id) order by c.updated_at desc,c.created_at desc,c.id desc limit 1`,
+    z.object({ id: uuid }),
+  );
+  return conversation?.id ?? null;
+}
 export async function lockConversation(
   db: Db,
   sessionId: string,

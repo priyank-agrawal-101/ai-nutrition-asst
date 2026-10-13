@@ -15,6 +15,7 @@ test.beforeEach(async ({ page, baseURL }) => {
 });
 test("EC-UI-01 EC-REQ-04 stored answer survives refresh and dropped response", async ({
   page,
+  context,
 }) => {
   await page.goto("/");
   await expect(page.getByLabel("Your question")).toBeEnabled();
@@ -47,6 +48,39 @@ test("EC-UI-01 EC-REQ-04 stored answer survives refresh and dropped response", a
       .filter({ hasText: "Synthetic browser storage question" }),
   ).toHaveCount(1);
   expect(submissions).toBe(1);
+  let creations = 0;
+  context.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/conversations"))
+      creations++;
+  });
+  await page.evaluate(() => sessionStorage.removeItem("nutribite.recovery.v1"));
+  await page.reload();
+  await expect(page.getByLabel("Your question")).toBeEnabled();
+  await expect(
+    page
+      .getByRole("article")
+      .filter({ hasText: "Synthetic browser storage question" }),
+  ).toHaveCount(1);
+  expect(creations).toBe(0);
+  expect(submissions).toBe(1);
+  const returnedTab = await context.newPage();
+  await returnedTab.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new Error("Storage unavailable fixture");
+    };
+    Storage.prototype.setItem = () => {
+      throw new Error("Storage unavailable fixture");
+    };
+  });
+  await returnedTab.goto(page.url());
+  await expect(returnedTab.getByLabel("Your question")).toBeEnabled();
+  await expect(
+    returnedTab
+      .getByRole("article")
+      .filter({ hasText: "Synthetic browser storage question" }),
+  ).toHaveCount(1);
+  expect(creations).toBe(0);
+  await returnedTab.close();
   await page
     .getByRole("button", { name: "About this chat", exact: true })
     .click();
@@ -64,6 +98,17 @@ test("EC-UI-01 EC-REQ-04 stored answer survives refresh and dropped response", a
       .getByRole("article")
       .filter({ hasText: "Synthetic browser storage question" }),
   ).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByLabel("Your question")).toBeEnabled();
+  await expect(page.getByRole("article")).toHaveCount(0);
+  await page.getByRole("button", { name: "Resume last saved chat" }).click();
+  await expect(
+    page
+      .getByRole("article")
+      .filter({ hasText: "Synthetic browser storage question" }),
+  ).toHaveCount(1);
+  expect(creations).toBe(1);
+  expect(submissions).toBe(1);
 });
 test("EC-SEC-08 EC-UI-02 keyboard, mobile layout and inert user text", async ({
   page,
@@ -81,13 +126,45 @@ test("EC-SEC-08 EC-UI-02 keyboard, mobile layout and inert user text", async ({
     page.getByText("This is a scripted local test response.", { exact: false }),
   ).toBeVisible();
   expect(await page.locator("img").count()).toBe(0);
+  await page.getByText("Claims (0)", { exact: true }).click();
+  await expect(
+    page.getByText("No factual claims were included in this response."),
+  ).toBeVisible();
+  // Supply a structured read fixture for presentation; the real database round-trip
+  // and rejection of malformed/non-null-source candidates have integration coverage.
+  await page.route("**/api/v1/conversations/*", async (route) => {
+    const response = await route.fetch();
+    const body = envelope(conversationSchema).parse(
+      (await response.json()) as unknown,
+    );
+    if (!("data" in body)) throw new Error("Expected conversation");
+    const assistant = body.data.turns[0]?.assistant_message;
+    if (!assistant) throw new Error("Expected saved assistant response");
+    assistant.content.claims = [
+      { text: "Synthetic <b>claim</b> displayed as plain text.", source: null },
+      { text: "A second synthetic claim.", source: null },
+    ];
+    await route.fulfill({ response, json: body });
+  });
+  await page.reload();
+  await expect(input).toBeEnabled();
+  await page.getByText("Claims (2)", { exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByText("Synthetic <b>claim</b> displayed as plain text.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("Source: null", { exact: true })).toHaveCount(2);
+  expect(await page.getByRole("article").locator("b").count()).toBe(0);
+  await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "test-results/phase1-chat.png",
+    path: "test-results/structured-claims-mobile.png",
     fullPage: true,
   });
 });

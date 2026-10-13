@@ -177,3 +177,19 @@ Sources, storage/retention and detailed diagnostic notices moved into **About th
 The original Wise files, saved conversations and quota ledger were preserved. This frontend work used no Groq calls. See [UX](ux-flow.md#visual-direction-and-information-hierarchy) for design/interaction decisions and [testing](testing.md#frontend-redesign-verification) for verification and remaining release checks.
 
 The owner also requested more interactive animation: mouse-driven plate tilt, animated topic changes, tactile starter cards and a brief composer highlight now respond to interaction. Reduced-motion preferences are respected; the scripted browser checks confirm these effects make no automatic submissions. See the follow-up evidence in [testing](testing.md#frontend-redesign-verification).
+
+## Structured response visibility, 13 October 2026
+
+The owner noticed that the chat showed prose alone and questioned compliance with the PRD. Audit confirmed that the model request still uses strict JSON Schema; the service parses raw JSON, validates the required answer/claims/source fields, enforces null sources in M1 and commits the whole object. The UI previously displayed only `content.answer`. A read-only check of the cited saved protein reply confirmed an answer string and three claims, all with null sources; no transcript was exported.
+
+The chat now exposes an expandable Claims count beneath each completed reply, with the stored claim text and source value. Empty arrays have an explicit empty state. This is a presentation correction: no provider prompt, schema, safety gate, database record or API shape changed, and claims are never inferred from displayed prose. [UX](ux-flow.md#ux-02-ask-a-question) and [the API contract](api-contract.md#answer-content-and-citation-schema) own the behavior and contract.
+
+## Restore a saved chat after refresh
+
+1. Open `http://127.0.0.1:51261` in the same browser profile used for the conversation. Keep the same hostname: `localhost` and `127.0.0.1` do not share this session cookie.
+2. Refresh. The app restores the tab's conversation when its reference exists; otherwise it asks the server for the latest non-empty conversation belonging to the current live anonymous session.
+3. If the tab already has an empty conversation, click **Resume last saved chat** beside the conversation heading. Clear any composer draft first to enable it. This reads saved messages without resending a question or calling Groq.
+4. **New chat** still explicitly starts an empty conversation, and refreshing that tab preserves the choice. Existing messages remain subject to the normal retention policy.
+5. If no resume button is available, the current session has no other eligible saved conversation. A missing/expired cookie, private window or different browser profile cannot recover the former session through the chat UI. The local database inspection steps above remain available to the project owner; the API does not bypass session ownership.
+
+This recovery correction was implemented on 13 October 2026. [Verification](testing.md#saved-chat-recovery-verification) records missing/blocked tab-storage, ownership and explicit-resume tests. No database migration, model call or message rewrite was required.

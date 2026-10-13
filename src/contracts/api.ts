@@ -154,6 +154,7 @@ export const apiErrorSchema = z.strictObject({
 });
 export type ApiError = z.infer<typeof apiErrorSchema>;
 export const sessionSchema = z.strictObject({
+  latest_conversation_id: uuid.nullable(),
   diagnostics_enabled: z.boolean(),
   provider_mode: z.enum(["scripted", "groq"]),
   generation_enabled: z.boolean(),

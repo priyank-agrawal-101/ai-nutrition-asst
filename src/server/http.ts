@@ -34,6 +34,7 @@ import type { Database } from "./db/connection";
 import type { TurnService } from "./turn-service";
 import type { EventSink } from "./telemetry";
 import migrationManifest from "./db/migration-manifest.json";
+import { latestSavedConversation } from "./db/conversations";
 
 export function createHandler(
   database: Database,
@@ -227,6 +228,10 @@ export function createHandler(
           sessionSchema,
           {
             expires_at: session.expires_at,
+            latest_conversation_id: await latestSavedConversation(
+              database.db,
+              session.id,
+            ),
             csrf_token: csrf(session, config),
             limits: config.limits,
             provider_mode: config.providerMode,
@@ -243,6 +248,10 @@ export function createHandler(
         if (endpoint === "session")
           response = success(sessionSchema, {
             expires_at: session.expires_at,
+            latest_conversation_id: await latestSavedConversation(
+              database.db,
+              session.id,
+            ),
             csrf_token: csrf(session, config),
             limits: config.limits,
             provider_mode: config.providerMode,

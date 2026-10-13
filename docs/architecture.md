@@ -463,3 +463,7 @@ Follow the approved [implementation plan](phase-wise-implementation-plan.md) and
 | Operating evidence | Initial limits/retention adopted; verify actual hosting behavior, spend/alerts, notices, operator/contact, and recovery. | Public operation |
 
 The [README](../README.md#next-build-decisions) routes these prerequisites. Do not require a manual-deletion amendment, additional services, or speculative retrieval design before M1.
+
+### Saved-chat startup recovery
+
+The browser's per-tab operation marker remains authoritative for its selected conversation and unresolved operation IDs. If that marker is missing/unavailable, the session response provides an owned `latest_conversation_id` derived from the most recently updated conversation with saved turns. The client restores through the normal conversation read, including running/failed status recovery. It never recreates messages or starts generation. Empty conversations are skipped only for this fallback; an existing valid tab reference still wins. An explicit Resume last saved chat action lets a user recover from an already-empty tab without overriding a deliberate New chat. API and UX own the field and exact interaction. Session expiry/revocation and cookie ownership still apply.

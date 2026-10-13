@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import styles from "./chat.module.css";
 
 const topics = [
@@ -172,6 +172,19 @@ export function ChatWelcome({
   disabled: boolean;
 }) {
   const [topic, setTopic] = useState(0);
+  const [card, setCard] = useState(0);
+  const suggestions = useRef<HTMLDivElement>(null);
+  const showCard = (index: number) => {
+    const rail = suggestions.current;
+    const buttons = rail?.querySelectorAll<HTMLButtonElement>("button");
+    if (!rail || !buttons?.[index] || !buttons[0]) return;
+    rail.scrollTo({
+      left: buttons[index].offsetLeft - buttons[0].offsetLeft,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "instant"
+        : "smooth",
+    });
+  };
   return (
     <div className={styles.empty}>
       <div className={styles.welcomeHero}>
@@ -181,8 +194,13 @@ export function ChatWelcome({
             <br />A better bite.
           </h2>
           <p>
-            From the dal on your plate to the food in your fridge. Let’s talk
-            about it.
+            <span className={styles.welcomeIntroFull}>
+              From the dal on your plate to the food in your fridge. Let’s talk
+              about it.
+            </span>
+            <span className={styles.welcomeIntroShort}>
+              Curious about food? Let’s talk.
+            </span>
           </p>
         </div>
         <FoodPlate />
@@ -198,13 +216,44 @@ export function ChatWelcome({
               key={item.name}
               type="button"
               aria-pressed={topic === index}
-              onClick={() => setTopic(index)}
+              onClick={() => {
+                setTopic(index);
+                setCard(0);
+              }}
             >
               {item.name}
             </button>
           ))}
         </div>
-        <div key={topic} className={styles.suggestions}>
+        <div
+          key={topic}
+          id="starter-suggestions"
+          ref={suggestions}
+          className={styles.suggestions}
+          role="group"
+          aria-label="Suggested questions"
+          onScroll={(event) => {
+            const rail = event.currentTarget;
+            const buttons = rail.querySelectorAll<HTMLButtonElement>("button");
+            const first = buttons[0];
+            if (!first) return;
+            let closest = 0;
+            buttons.forEach((button, index) => {
+              if (
+                Math.abs(
+                  button.offsetLeft - first.offsetLeft - rail.scrollLeft,
+                ) <
+                Math.abs(
+                  buttons[closest]!.offsetLeft -
+                    first.offsetLeft -
+                    rail.scrollLeft,
+                )
+              )
+                closest = index;
+            });
+            setCard(closest);
+          }}
+        >
           {topics[topic]?.questions.map((question) => (
             <button
               type="button"
@@ -218,6 +267,34 @@ export function ChatWelcome({
               </span>
             </button>
           ))}
+        </div>
+        <div className={styles.suggestionNavigation}>
+          <span>Choose a question</span>
+          <button
+            type="button"
+            aria-label="Previous suggestion"
+            aria-controls="starter-suggestions"
+            disabled={card === 0}
+            onClick={() => showCard(card - 1)}
+          >
+            ‹
+          </button>
+          <span
+            className={styles.suggestionCount}
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {card + 1} / 3
+          </span>
+          <button
+            type="button"
+            aria-label="Next suggestion"
+            aria-controls="starter-suggestions"
+            disabled={card === 2}
+            onClick={() => showCard(card + 1)}
+          >
+            ›
+          </button>
         </div>
       </div>
     </div>

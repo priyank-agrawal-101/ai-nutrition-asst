@@ -39,6 +39,7 @@ export default function Chat() {
   const [waitUntil, setWaitUntil] = useState(0),
     [clock, setClock] = useState(() => Date.now());
   const marker = useRef<Marker>({}),
+    shell = useRef<HTMLElement>(null),
     active = useRef(""),
     mounted = useRef(false),
     pendingText = useRef(""),
@@ -47,6 +48,46 @@ export default function Chat() {
     messages = useRef<HTMLDivElement>(null),
     atBottom = useRef(true),
     dialog = useRef<HTMLDialogElement>(null);
+  const fitInput = useCallback(() => {
+    const textarea = input.current;
+    if (!textarea) return;
+    const line = Number.parseFloat(getComputedStyle(textarea).lineHeight);
+    textarea.style.height = "0px";
+    textarea.style.height = `${Math.min(line * 4, Math.max(line * 2, textarea.scrollHeight))}px`;
+    if (
+      shell.current?.dataset.short === "true" &&
+      document.activeElement === textarea
+    )
+      textarea.closest("form")?.scrollIntoView({ block: "end" });
+  }, []);
+  useEffect(fitInput, [draft, fitInput]);
+  useEffect(() => {
+    const frame = shell.current;
+    if (!frame) return;
+    const viewport = window.visualViewport;
+    const resize = () => {
+      // Browser zoom uses CSS pixels; pinch zoom must not reshape the page.
+      const height = viewport?.scale === 1 ? viewport.height : innerHeight;
+      frame.style.setProperty("--app-height", `${height}px`);
+      frame.dataset.short = String(height < 500);
+      fitInput();
+      if (document.activeElement === input.current && height < 500)
+        input.current?.closest("form")?.scrollIntoView({ block: "end" });
+    };
+    window.addEventListener("resize", resize);
+    viewport?.addEventListener("resize", resize);
+    const visibility = () => {
+      frame.dataset.paused = String(document.hidden);
+    };
+    document.addEventListener("visibilitychange", visibility);
+    visibility();
+    resize();
+    return () => {
+      window.removeEventListener("resize", resize);
+      viewport?.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", visibility);
+    };
+  }, [fitInput]);
   const save = useCallback((value: Marker) => {
     marker.current = value;
     try {
@@ -350,7 +391,8 @@ export default function Chat() {
     state === "loading" || state === "waiting" || state === "unknown";
   const count = [...normalize(draft)].length;
   return (
-    <main className={styles.shell}>
+    <main className={styles.shell} ref={shell}>
+      <div className={styles.ambient} aria-hidden="true" />
       <header className={styles.header}>
         <div className={styles.brand}>
           <span className={styles.brandMark} aria-hidden="true">
@@ -571,6 +613,13 @@ export default function Chat() {
               aria-live="polite"
               aria-atomic="true"
             >
+              {state === "waiting" && (
+                <span className={styles.thinking} aria-hidden="true">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              )}
               {message || "Loading your saved chat…"}
               {state === "unknown" && (
                 <button
@@ -630,6 +679,7 @@ export default function Chat() {
             </label>
             <textarea
               id="question"
+              rows={2}
               ref={input}
               value={draft}
               disabled={state !== "ready"}
@@ -685,7 +735,9 @@ export default function Chat() {
               </p>
             )}
             <small id="question-help">
-              Enter to send · Shift+Enter for a new line.{" "}
+              <span className={styles.keyboardHint}>
+                Enter to send · Shift+Enter for a new line.{" "}
+              </span>
               {conversation?.turn_count ?? 0} /{" "}
               {session?.limits.conversation_max_turns ?? 20} questions in this
               chat.
@@ -710,6 +762,10 @@ export default function Chat() {
             </p>
           )}
         </section>
+        <aside className={styles.sources} aria-labelledby="sources-title">
+          <h2 id="sources-title">Sources</h2>
+          <p>No sources available in this version.</p>
+        </aside>
       </div>
     </main>
   );

@@ -20,7 +20,7 @@ npm run build
 npm run dev
 ```
 
-The launcher prints a free loopback URL, provisions PostgreSQL 17 inside this project, applies the reviewed migration, and keeps local data in ignored `.tmp/local/`. Subsequent launches reuse that data and the same origin. Ctrl+C stops only its app and database. Despite the `dev` command name, this launcher serves the production build; rebuild after changing application code. Do not remove `.tmp/local/` to repair a build.
+The launcher prints a free loopback URL, provisions PostgreSQL 17 inside this project, applies the reviewed migration, and keeps local data in ignored `.tmp/local/`. Subsequent launches reuse that data and the same origin. Ctrl+C stops only its app and database. Despite the `dev` command name, this launcher serves the production build. After changing application code, stop this project's app, rebuild, then restart with `npm run dev` and refresh the browser. The build command refuses to overwrite files while the local app is reachable, because its old asset references would break CSS and JavaScript. Do not remove `.tmp/local/` to repair a build.
 
 Run `npm run check` and `npm run test:integration` for software verification. The integration harness creates and removes its own marked database; it never falls back to the local application database. Browser setup and evidence are in [testing](docs/testing.md#phase-2-implementation-evidence). Configuration and operating commands are in [operations](docs/deployment-and-operations.md#phase-2-groq-local-operation). Ordinary software tests need no provider key. Stop this project's running app before reinstalling dependencies on Windows; keep `.tmp/local/`.
 
@@ -62,7 +62,7 @@ The order below is a reading map, not a mandatory document-production queue. Cre
 
 ## Design documents and previews
 
-On 11 October 2026 the owner requested a new frontend design independent of Wise, with motion, interactive starters and less prominent notices. [UX](docs/ux-flow.md#visual-direction-and-information-hierarchy) owns the new direction; implementation uses self-hosted Outfit, plum/lilac/mint colours and a food illustration. **About this chat** contains Sources and detailed privacy/diagnostic information. A new `design-guide.md`/preview pair is not needed. Verify the actual UI at desktop/mobile widths, including focus, contrast, reading and error/source states.
+On 11 October 2026 the owner requested a new frontend design independent of Wise, with motion, interactive starters and less prominent notices. [UX](docs/ux-flow.md#visual-direction-and-information-hierarchy) owns the new direction; implementation uses self-hosted Outfit, plum/lilac/mint colours and a food illustration. Sources sits quietly beside the conversation, with an empty-state message. On narrow screens it is a compact row below the conversation. The app fits the available screen height, with internal message scrolling and a composer that stays visible; very short or zoomed views retain accessible scrolling. **About this chat** contains answer limitations and detailed privacy/diagnostic information. A new `design-guide.md`/preview pair is not needed. Verify the actual UI at desktop/mobile widths, including focus, contrast, reading and error/source states.
 
 If a distinct Design Guide is explicitly requested later, pair it with an HTML preview and keep both aligned. The existing reference preview already provides an offline viewing option and print styles; it is not an additional launch dependency.
 

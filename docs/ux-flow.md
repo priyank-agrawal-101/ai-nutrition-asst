@@ -2,7 +2,7 @@
 
 Status: Phase 2 local flows implemented, 11 October 2026. Chromium keyboard/responsive checks passed; actual screen-reader review remains pending.
 
-The owner requested a new visual direction on 11 October 2026, replacing the Wise styling and reducing the prominence of notices. The [local chat](../src/app/page.tsx) now centres the conversation and composer. Sources, retention and diagnostic details are available through **About this chat**. It explicitly labels scripted mode, preserves one question per turn, restores through reads and exposes explicit retry/check-again actions. See [browser evidence](testing.md); automated checks are not a completed screen-reader or release browser-matrix review.
+The owner requested a new visual direction on 11 October 2026, replacing the Wise styling and reducing the prominence of notices. The [local chat](../src/app/page.tsx) now centres the conversation and composer. Sources sits beside the conversation on desktop and below it on narrow screens. Answer limitations, retention and diagnostic details remain available through **About this chat**. It explicitly labels scripted mode, preserves one question per turn, restores through reads and exposes explicit retry/check-again actions. See [browser evidence](testing.md); automated checks are not a completed screen-reader or release browser-matrix review.
 
 Based on [problemStatement.md](problemStatement.md) and [product-spec.md](product-spec.md). Follow the [README writing rules](../README.md#writing-rules).
 
@@ -14,25 +14,34 @@ The food-table illustration provides the distinctive entry moment; the active tr
 
 ```text
 Brand + tagline                         About this chat   New chat
-┌──────────────────────────────────────────────────────────────┐
-│ Empty: invitation + illustrated plate                        │
-│        topic buttons + three starter questions               │
-│ Active: user questions + assistant answers                    │
-│         only relevant errors and recovery actions            │
-│ Question composer                                      Send  │
-│ Small storage/provider and answer-limitation footer           │
-└──────────────────────────────────────────────────────────────┘
++--------------------------------------------------+  | Sources
+| Empty: invitation + plate and starter questions   |  | No sources available
+| Active: questions, answers and recovery actions  |  | in this version.
+| Question composer                          Send  |
+| Small storage/provider and limitation footer    |
++--------------------------------------------------+
+Narrow screens: Sources follows the conversation.
 ```
 
-Copy and messages are left aligned; the wide-screen footer is centred. At narrow widths the starters stack, the illustration shrinks (hidden below 360px) and the composer stays full width. Review of the initial direction removed the permanent notices sidebar: it competed with the conversation and repeated the same limitations. This is a chat interface, not a nutrition dashboard; there are no invented health metrics, source cards or history controls.
+Copy and messages are left aligned; the wide-screen footer is centred. At narrow widths the starters form a swipeable card slider, the illustration shrinks (hidden below 360px) and the composer stays full width. On 13 October 2026 the owner restored the assignment's adjacent Sources panel. Keep it subtle: a 180px column, a light divider, muted readable text and one short empty-state message. Below 1100px, use a compact row directly after the conversation with a top divider, within the available screen height. Do not repeat the privacy paragraphs there. This is a chat interface, not a nutrition dashboard; there are no invented health metrics, source cards or history controls.
 
 - Topic buttons change starter questions locally. Choosing a question fills and focuses the composer, without sending a request. Existing drafts disable starter selection so they cannot be overwritten.
-- The plate enters once when the empty state mounts, then tilts up to eight degrees in response to mouse position and returns to rest on pointer exit. Topic changes reveal the new question group; starter cards lift on hover and compress on press. Choosing a starter briefly highlights the composer without sending. Opening the information panel has a short slide. Reduced-motion preference disables decorative transforms, transitions and the composer pulse. Touch users retain normal scrolling and get press/selection feedback; no pointer tracking runs for touch. No looping decorative motion or simulated source search.
-- **About this chat** opens a native modal panel with Sources, data handling and enabled diagnostic details. Escape/Close dismiss it and return focus; the background is inert while open. The same control remains available on mobile and in error states.
+- The plate enters once when the empty state mounts, then tilts up to eight degrees in response to mouse position and returns to rest on pointer exit. Topic changes reveal the new question group; starter cards lift on hover and compress on press. Choosing a starter briefly highlights the composer without sending. Opening the information panel has a short slide. Reduced-motion preference disables decorative transforms, transitions and the composer pulse. Touch users retain normal scrolling and get press/selection feedback; no pointer tracking runs for touch. The owner requested gentle ongoing motion on 13 October: the plate now drifts subtly, with slow mint/lilac background shapes outside the reading surface. Message arrivals have a short entrance, Send has press feedback and a three-dot indicator accompanies actual waiting. Decorative layers cannot intercept input or enlarge the page; animations pause in hidden tabs. Reduced-motion preference disables these effects. No simulated source search or extra model call is introduced.
+- **About this chat** opens a native modal panel with answer limitations, data handling and enabled diagnostic details. Escape/Close dismiss it and return focus; the background is inert while open. The same control remains available on mobile and in error states.
 - The storage/provider summary and source limitation remain small, readable text beside the composer. Enabled private diagnostics have a short indicator pointing to the information panel. No repeated full privacy paragraphs in the conversation.
 - Completed answers supply the visible confirmation. “Response ready” and the duplicate saved-but-failed summary remain polite screen-reader announcements, without visible banners. Specific failure messages and recovery controls stay visible beside the affected request. Unknown/loading/waiting states remain visible.
 
 The chat recovery, new-chat, limits, notice, and accessibility behavior is adopted in the [product specification](product-spec.md). Button labels and message examples below guide UI implementation; exact assistant templates remain in [prompt-spec.md](prompt-spec.md).
+
+## Viewport and scrolling
+
+Owner-approved layout, 13 October 2026: the app frame uses the available viewport height. Header, composer, Send and Sources stay visible during normal use; long history and expanded claims scroll within Messages. Remove fixed transcript minimum heights and extra wide-screen vertical padding. The welcome fits standard desktop and mobile sizes, retaining its illustration, topic controls and all three starters. On mobile, one spacious suggestion card is shown with a glimpse of the next, native horizontal swipe, previous/next controls and a position indicator. Topic changes return to the first card; navigation never fills or submits a question. Desktop retains the three-card row. Short mobile screens use a shorter introductory sentence; the composer omits desktop keyboard hints while keeping the question count.
+
+The input grows from two to four lines and then scrolls internally. Enter/Shift+Enter and IME behavior remain unchanged. New replies follow the bottom only when the reader is already there. Essential notices, errors and recovery actions remain visible; detailed explanations stay in About this chat.
+
+Use dynamic viewport height and the visual viewport during mobile keyboard changes. Below 500 CSS pixels of visible height, permit page scrolling with a bounded message area so enlarged/short-window content remains reachable. Keep the focused composer in view as its draft grows. Pinch zoom retains normal browser behavior. Dialogs scroll independently. Never hide overflow to conceal inaccessible controls.
+
+[Viewport verification](testing.md#viewport-fitting-layout-verification) owns tested sizes, scenarios and browser/device limitations.
 
 ## Main flow
 
@@ -65,7 +74,7 @@ Saved-chat recovery and input limits implement accepted `CHAT-04` and `CHAT-06`.
 | Product identity | Shows **Gusto NutriBite** and **Your personal AI nutrition companion** on the entry/chat screen. Verify responsive behavior. |
 | Conversation | Reads messages in order, with user and assistant clearly identified. Request errors appear beside the affected question. |
 | Question input | Types a question and uses **Send**. Input errors appear beside the field. |
-| Sources | Opens the panel through **About this chat** throughout the conversation. Follow UX-05 for its content. |
+| Sources | Always visible beside the conversation on desktop, or below it on narrow screens. Follow UX-05 for its content. |
 | New chat | Starts a separate conversation under `CHAT-04`. |
 | Answer notice | Explains the limitation in `ANS-06`. Text: "Answers may be inaccurate. This version does not check sources." |
 
@@ -76,7 +85,7 @@ References: [Conversation](product-spec.md#conversation) (`CHAT-01`, `CHAT-04`),
 1. Open the public app URL. These flows use the adopted anonymous scope without registration.
 2. If the browser has an active conversation, show a loading state and follow UX-07. Otherwise, show an empty message list.
    When the tab reference is missing, first use the live session's `latest_conversation_id` to restore its most recent saved conversation. Create an empty conversation only when no saved one exists. A read failure stays an error with **Check again**, never a reason to silently create an empty chat.
-3. Show the input, starter questions and **About this chat** control. Sources remain available inside that panel.
+3. Show the input, starter questions and **About this chat** control. The empty Sources panel remains visible in the main layout.
 4. Enable submission when the conversation is ready.
 
 Do not treat a failed history load as an empty conversation.
@@ -116,7 +125,7 @@ A refusal is a completed response, not a service error. Do not show **Retry** be
 
 References: [Answers and sources](product-spec.md#answers-and-sources) (`ANS-02`, `ANS-05`, `ANS-06`), [Milestone 2](product-spec.md#deployment-and-milestone-2) (`NEXT-01`).
 
-The sources panel inside **About this chat** has no entries in every Milestone 1 state: empty chat, waiting, answer, refusal, and error. Text: "No sources available in this version." This collapsible presentation is an owner-authorized change from the brief's permanent adjacent panel; the source contract is unchanged.
+The Sources panel sits beside the conversation at widths of 1100px and above, and directly below it at narrower widths. It is always visible, with no entries in every Milestone 1 state: empty chat, waiting, answer, refusal, and error. Text: "No sources available in this version." It uses a small heading and muted text, with no card background, badge or additional action. This restores the assignment's adjacent layout; the source contract is unchanged.
 
 Do not show a source-search animation or turn an authority mentioned in an answer into a citation link. Milestone 2 will populate this same panel; citation interactions will be specified then.
 
@@ -174,7 +183,7 @@ References: [Backend and usability](product-spec.md#backend-and-usability) (`SYS
 - Let users reach the input and actions by keyboard, with visible focus. **Enter** sends; **Shift+Enter** adds a line. Do not send while a text-composition input is active.
 - Announce loading, completion, and errors to screen readers. Do not move focus away while the user is typing or reading.
 - Keep new messages in view when the user is already at the bottom. Do not force-scroll someone reading earlier messages.
-- Keep sources reachable through **About this chat** on mobile. Record supported widths during UI verification.
+- Keep Sources visible directly below the conversation on mobile. Record supported widths during UI verification.
 
 ## Implementation handoff
 
@@ -195,7 +204,7 @@ Status recovery announces "Response ready" only when the submitted/retried turn 
 
 For a known quota wait, use the existing concise failure/status message; do not show a separate seconds-countdown banner. Disable Send/Retry while keeping the draft editable. Expiry enables an explicit action; it never sends automatically. A pre-acceptance rejection preserves the pending operation ID for an unchanged request and consumes no turn/attempt. A stored quota failure retains its retry timestamp across refresh. History/status checks remain available during the wait. See the [API retry-time contract](api-contract.md#8-errors-and-recovery-instructions).
 
-The earlier Wise-based layout passed Chromium checks at 320, 390, 768 and 1280px, including wrapped input and refusal text. Those historical results remain in testing; the owner-authorized redesign uses the same widths and moves Sources into the information panel. Original reference assets are preserved.
+The earlier Wise-based layout passed Chromium checks at 320, 390, 768 and 1280px, including wrapped input and refusal text. Those historical results remain in testing; the owner-authorized redesign uses the same widths. The 13 October follow-up restores Sources to the main layout. Original reference assets are preserved.
 
 Enter sends, Shift+Enter inserts a line, and active IME composition never submits. A native modal supplies Keep editing / Discard and start with focus containment. New-chat failure preserves the current conversation and draft while the creation receipt is recovered. Message scrolling follows the latest exchange only when already near the bottom; a separate live status region avoids announcing the whole transcript on every poll. The visible data notice identifies local storage and Groq transmission before input, with details of seven-day access, background cleanup, shared-browser access and provider retention.
 

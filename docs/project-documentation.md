@@ -1,6 +1,6 @@
 # Gusto NutriBite: Project Documentation — Behind the Scenes
 
-Last updated: 11 October 2026.
+Last updated: 13 October 2026.
 
 **Current stage:** Phase 1 is locally built and tested. Phase 2 implements Groq, safety enforcement and the chat UI, with software and live smoke evidence recorded; actual screen-reader review remains pending. Full Phase 3 evaluation and public deployment have not been completed. The [implementation plan](phase-wise-implementation-plan.md) owns phase status.
 
@@ -193,3 +193,15 @@ The chat now exposes an expandable Claims count beneath each completed reply, wi
 5. If no resume button is available, the current session has no other eligible saved conversation. A missing/expired cookie, private window or different browser profile cannot recover the former session through the chat UI. The local database inspection steps above remain available to the project owner; the API does not bypass session ownership.
 
 This recovery correction was implemented on 13 October 2026. [Verification](testing.md#saved-chat-recovery-verification) records missing/blocked tab-storage, ownership and explicit-resume tests. No database migration, model call or message rewrite was required.
+
+## Sources beside the conversation, 13 October 2026
+
+The owner restored the assignment's Sources placement. A narrow, muted panel now sits beside desktop chat and directly below it on narrow screens; About this chat retains limitations and data-handling details. Updated ANS-05, UX-05, the assignment comparison and README. [Verification](testing.md#adjacent-sources-panel-verification) records the checks and remaining release limits. The next work remains the Phase 3 evaluation and release review described above.
+
+## Local style recovery, 13 October 2026
+
+The owner reported missing styling after the Sources change. The running server held old asset references after a rebuild. Restarting the verified local app restored its CSS and JavaScript while preserving stored chats. Added a build preflight and documented the stop/build/restart sequence; [P2-008](failure-log.md#p2-008-running-server-and-rebuilt-assets-13-october-2026) retains the cause and verification limits.
+
+## Screen-fitting chat and mobile refinement, 13 October 2026
+
+The owner requested a chat that fits the screen, then asked for more breathing room on mobile and a more engaging visual experience. The app now reserves space for the composer and Sources while messages scroll internally. Mobile starters use swipeable cards instead of a dense stack. Gentle background/food-plate motion and interaction feedback respect reduced motion and hidden tabs. Short or enlarged views retain accessible scrolling. [Verification](testing.md#viewport-fitting-layout-verification) records software checks, screenshots, preserved local data and the remaining physical-device review.

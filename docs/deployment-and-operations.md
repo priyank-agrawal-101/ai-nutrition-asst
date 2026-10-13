@@ -129,3 +129,9 @@ Retain `.tmp/live/<run-id>/` results and rejected synthetic diagnostics privatel
 After the owner encountered a long daily-budget wait, the regression runner now requires every new allocation to leave **50,000 tokens** of the configured 200,000-token daily allowance for interactive chat. Its check includes already-used tokens and the entire proposed test allocation, and the reserve is recorded in the manifest. Split larger evaluations across available budget windows. This safeguards future runs; it does not refund tokens already used, and a second key for the same account does not reset this app's shared usage ledger. No quota rows are deleted to make chat appear available.
 
 The UI no longer displays a separate countdown in raw seconds. The normal concise usage-limit status remains, with Send/Retry disabled until the known wait expires. Draft editing and history access stay available; expiry never submits automatically.
+
+## Local rebuild and missing styles
+
+Stop this project's local launcher before running `npm run build`; then restart with `npm run dev` and refresh the browser at its saved origin. Keep `.tmp/local/`. The build preflight refuses to overwrite the active local app's files. When operating a background launcher, verify project ownership and wait for active model work before stopping it; never stop unrelated Node/PostgreSQL processes.
+
+A healthy API does not prove that the page assets load. After a rebuild/restart, check the actual page's linked CSS and JavaScript as well as both health endpoints. [P2-008](failure-log.md#p2-008-running-server-and-rebuilt-assets-13-october-2026) records the missing-style incident and recovery.

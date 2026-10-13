@@ -13,7 +13,7 @@ Phase 1 builds the stored-chat foundation; Phase 2 completes the model and UI; P
 | What the problem statement requires | Plan coverage | Simple completion check |
 | --- | --- | --- |
 | Chat input, message list, and conversation storage | Phases 1–2 | A question and its answer are saved and can be read again. |
-| Sources panel beside chat, empty in M1 | Phase 2; owner-authorized placement change on 11 October 2026 | Empty panel remains available through **About this chat**, including after refresh. The owner requested less prominent notices; the original brief is preserved and ANS-05 records this presentation departure. |
+| Sources panel beside chat, empty in M1 | Phase 2; assignment placement restored on 13 October 2026 | A subtle empty Sources panel sits beside the conversation on desktop and below it on narrow screens, including after refresh. See ANS-05 and UX-05. |
 | Backend endpoint and server-side model calls | Phases 1–2 | Chat works through the backend; provider credentials stay off the browser. |
 | Structured answer and claims; each claim has text and source | Phases 1–2 | Native structured output matches the response schema. |
 | All M1 sources null; invalid responses fail | Phases 1–2 | Non-null sources and malformed/incomplete output are rejected before display or storage as a successful answer. |

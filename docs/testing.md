@@ -292,3 +292,29 @@ On 13 October 2026 the owner reported that loading finished with an empty chat. 
 - Final `npm run check` passed, including the regenerated manifest and 654 local Markdown links. The rebuilt local app is running at the same `http://127.0.0.1:51261` origin; live and ready endpoints returned HTTP 200. Startup reported zero purged sessions and zero reconciled attempts.
 
 Recovery reads committed data only and respects the existing anonymous cookie and expiry. It cannot restore another browser/session's conversations. No Groq calls, quota resets or transcript rewrites were made; broader release/accessibility limitations remain open.
+
+## Adjacent Sources panel verification
+
+Date: **13 October 2026**. The owner restored the assignment's ANS-05 layout. Sources now appears in the main layout: a quiet right-hand column on desktop and a compact section below the conversation under 1100px. About this chat retains answer limitations, privacy and diagnostics.
+
+- Build and the aggregate check passed, including 69 unit tests, formatting, lint, types, coverage mapping and local documentation links.
+- Chromium verification: all 10 tests passed using the scripted provider and isolated database `nutribite_test_fab70af67b07408d81222a188fd8ec57`, which was cleaned afterward.
+- Desktop and mobile screenshots at 320, 390, 768 and 1280px were reviewed for readable empty-state text, spacing and overflow. The responsive browser case checks panel position; existing recovery/error cases check visibility without opening a modal.
+- The first browser run passed 9/10. Its reduced-motion check saw the earlier normal-motion composer pulse still running. The test now waits for that pulse to finish before checking a new reduced-motion selection; the application animation and safeguards are unchanged.
+
+The work changes presentation only. No live model calls, database migration, prompt/schema change or public deployment was performed. Screen-reader listening and the broader release browser matrix remain pending.
+
+Sources follow-up, 13 October 2026: the isolated browser pass did not establish that the existing local server used the new build. [P2-008](failure-log.md#p2-008-running-server-and-rebuilt-assets-13-october-2026) records failed asset requests, a scoped restart, preserved data counts and successful checks of the actual served assets. The new build preflight was exercised against the running local app and exited nonzero before compilation. Browser-provider access was unavailable during recovery, so no new live-browser visual verification is claimed.
+
+## Viewport-fitting layout verification
+
+Date: **13 October 2026**. Owner-approved screen-fitting layout, followed by mobile card-slider and gentle-motion refinements. The browser suite uses the scripted provider and isolated PostgreSQL; no live model call was made.
+
+- Production build passed. The final Chromium suite passed **10/10** in owned database `nutribite_test_91acac4e90a5460eadd3e9d12c648192`, subsequently cleaned.
+- No horizontal/page vertical overflow was asserted at 320x640, 390x844, 768x900, 1280x720, 1366x768, 1440x900 and 1920x1080. Header, composer and Sources remain within the frame; the empty welcome fits without internal vertical scrolling. Refusal/oversized-input, loading and selected failure/expanded-claim states are also covered.
+- Drafts grow from two to four lines, then scroll internally. Existing IME, explicit-only submission, recovery and reading-position checks pass. Mobile slider buttons, keyboard navigation, native horizontal scrolling and topic reset work without submitting a question.
+- Short-window checks at 640x360 (layout equivalent of 1280x720 at 200% browser zoom) and 390x360 exercise the accessible scroll fallback and focused composer. Dialog scrolling and focus return pass. These are automated viewport simulations, not physical keyboard or native browser-zoom evidence.
+- The decorative background cannot intercept pointer input. Reduced-motion checks disable its animation and the plate motion; existing checks also cover the selection pulse. Actual waiting alone shows processing dots.
+- Initial browser iterations passed 9/10: the 320x640 empty view still overflowed. Mobile cards replaced the crowded stack at the owner's request. An isolated geometry probe then found four surplus pixels from message padding; removing that padding resolved the final welcome overflow. No requirement or overflow assertion was relaxed.
+
+The project app was stopped before rebuilding and restarted afterward at its preserved origin. The served page, both CSS assets, all seven referenced JavaScript assets and both health endpoints returned 200. The existing 22 messages and 31 conversations were preserved. Physical-device keyboard/touch checks, native browser zoom, screen-reader listening and the broader release browser matrix remain unverified; M1 release status is unchanged.

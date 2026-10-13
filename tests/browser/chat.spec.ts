@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import {
   conversationSchema,
   envelope,
@@ -6,6 +6,53 @@ import {
   sessionSchema,
   type TurnView,
 } from "../../src/contracts/api";
+const frameSizes = [
+  { width: 320, height: 640 },
+  { width: 390, height: 844 },
+  { width: 768, height: 900 },
+  { width: 1280, height: 720 },
+  { width: 1366, height: 768 },
+  { width: 1440, height: 900 },
+  { width: 1920, height: 1080 },
+];
+async function expectFrame(page: Page, welcome = false) {
+  await expect
+    .poll(() =>
+      page.evaluate((empty) => {
+        const inside = (el: Element | null) => {
+          const r = el?.getBoundingClientRect();
+          return (
+            !!r &&
+            r.top >= -1 &&
+            r.bottom <= innerHeight + 1 &&
+            r.left >= -1 &&
+            r.right <= innerWidth + 1
+          );
+        };
+        const messages = document.querySelector<HTMLElement>(
+          '[aria-label="Messages"]',
+        );
+        return {
+          pageFits:
+            document.documentElement.scrollHeight <= innerHeight + 1 &&
+            document.documentElement.scrollWidth <= innerWidth + 1,
+          composer: inside(document.querySelector("form")),
+          sources: inside(document.querySelector("aside")),
+          header: inside(document.querySelector("header")),
+          welcomeFits:
+            !empty ||
+            (!!messages && messages.scrollHeight <= messages.clientHeight + 1),
+        };
+      }, welcome),
+    )
+    .toEqual({
+      pageFits: true,
+      composer: true,
+      sources: true,
+      header: true,
+      welcomeFits: true,
+    });
+}
 test.beforeEach(async ({ page, baseURL }) => {
   await page.route("**/*", async (route) => {
     if (new URL(route.request().url()).origin !== baseURL)
@@ -81,16 +128,12 @@ test("EC-UI-01 EC-REQ-04 stored answer survives refresh and dropped response", a
   ).toHaveCount(1);
   expect(creations).toBe(0);
   await returnedTab.close();
-  await page
-    .getByRole("button", { name: "About this chat", exact: true })
-    .click();
   await expect(
     page.getByRole("heading", { name: "Sources", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText("No sources available in this version."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Close chat information" }).click();
   await page.getByRole("button", { name: "New chat", exact: true }).click();
   await expect(page.getByLabel("Your question")).toBeEnabled();
   await expect(
@@ -157,7 +200,9 @@ test("EC-SEC-08 EC-UI-02 keyboard, mobile layout and inert user text", async ({
   ).toBeVisible();
   await expect(page.getByText("Source: null", { exact: true })).toHaveCount(2);
   expect(await page.getByRole("article").locator("b").count()).toBe(0);
+  await expectFrame(page);
   await page.setViewportSize({ width: 390, height: 844 });
+  await expectFrame(page);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -193,6 +238,27 @@ test("EC-UI-03 composition, line breaks and Enter submit once", async ({
   await expect(page.getByRole("status")).toHaveText("Response ready.");
   await expect(page.getByRole("status")).toHaveCSS("clip-path", "inset(50%)");
   expect(submits).toBe(1);
+  await input.fill("A long draft line\n".repeat(12));
+  await expect
+    .poll(() =>
+      input.evaluate((el) => {
+        const line = Number.parseFloat(getComputedStyle(el).lineHeight);
+        return (
+          el.clientHeight <= line * 4 + 1 && el.scrollHeight > el.clientHeight
+        );
+      }),
+    )
+    .toBe(true);
+  await expectFrame(page);
+  await input.fill("");
+  await expect
+    .poll(() =>
+      input.evaluate(
+        (el) =>
+          el.clientHeight / Number.parseFloat(getComputedStyle(el).lineHeight),
+      ),
+    )
+    .toBeCloseTo(2, 1);
   // Mock only the safe capability flag to inspect the privacy notice.
   await page.route("**/api/v1/session", async (route) => {
     const response = await route.fetch();
@@ -385,13 +451,10 @@ for (const limited of [false, true])
         exact: false,
       }),
     ).toHaveCount(0);
-    await page
-      .getByRole("button", { name: "About this chat", exact: true })
-      .click();
     await expect(
       page.getByText("No sources available in this version."),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Close chat information" }).click();
+    await expectFrame(page);
     if (limited) {
       await expect(
         page.getByRole("button", { name: "Retry", exact: true }),
@@ -442,6 +505,7 @@ test("EC-UI-11 reading position stays put and bottom tracking follows new messag
   await input.press("Enter");
   await expect(input).toHaveValue("");
   expect(await messages.evaluate((el) => el.scrollTop)).toBe(0);
+  await expectFrame(page);
   await messages.evaluate((el) => {
     el.scrollTop = el.scrollHeight;
     el.dispatchEvent(new Event("scroll"));
@@ -488,7 +552,7 @@ test("EC-UI-04 draft dialog keeps editing and failed creation preserves history"
   await expect(page.getByRole("article")).toHaveCount(0);
 });
 
-test("EC-UI-07/08/10 one visitor views refusal, sources and wrapped input at 320/390/768/1280px", async ({
+test("EC-UI-07/08/10 one visitor views refusal, sources and wrapped input within the viewport", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 844 });
@@ -497,8 +561,8 @@ test("EC-UI-07/08/10 one visitor views refusal, sources and wrapped input at 320
   await expect(input).toBeEnabled();
   await input.fill("How many calories should I eat each day?");
   await input.press("Enter");
-  for (const width of [320, 390, 768, 1280]) {
-    await page.setViewportSize({ width, height: 844 });
+  for (const { width, height } of frameSizes) {
+    await page.setViewportSize({ width, height });
     await expect(
       page.getByText("I can't recommend or calculate calorie targets.", {
         exact: false,
@@ -507,16 +571,22 @@ test("EC-UI-07/08/10 one visitor views refusal, sources and wrapped input at 320
     await expect(
       page.getByRole("button", { name: "Retry", exact: true }),
     ).toHaveCount(0);
-    await page
-      .getByRole("button", { name: "About this chat", exact: true })
-      .click();
-    await page
-      .getByRole("heading", { name: "Sources", exact: true })
-      .scrollIntoViewIfNeeded();
+    const sources = page.getByRole("complementary", { name: "Sources" });
+    await sources.scrollIntoViewIfNeeded();
     await expect(
-      page.getByText("No sources available in this version."),
+      sources.getByText("No sources available in this version."),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Close chat information" }).click();
+    const sourceBox = await sources.boundingBox();
+    const chatBox = await page
+      .getByRole("region", { name: "Conversation", exact: true })
+      .boundingBox();
+    if (!sourceBox || !chatBox) throw new Error("Missing chat layout");
+    if (width >= 1100) {
+      expect(sourceBox.x).toBeGreaterThan(chatBox.x + chatBox.width);
+      expect(sourceBox.y).toBeLessThan(chatBox.y + chatBox.height);
+    } else {
+      expect(sourceBox.y).toBeGreaterThanOrEqual(chatBox.y + chatBox.height);
+    }
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -527,6 +597,7 @@ test("EC-UI-07/08/10 one visitor views refusal, sources and wrapped input at 320
     await expect(
       page.getByRole("button", { name: "Send", exact: true }),
     ).toBeDisabled();
+    await expectFrame(page);
     await page.screenshot({
       path: `test-results/phase2-${width}.png`,
       fullPage: true,
@@ -537,7 +608,18 @@ test("EC-UI-07/08/10 one visitor views refusal, sources and wrapped input at 320
 test("EC-UI-02 EC-UI-07 starter questions, quiet notices and reduced motion", async ({
   page,
 }) => {
+  let releaseSession!: () => void;
+  const sessionGate = new Promise<void>((resolve) => {
+    releaseSession = resolve;
+  });
+  await page.route("**/api/v1/session", async (route) => {
+    await sessionGate;
+    await route.continue();
+  });
   await page.goto("/");
+  await expect(page.getByRole("status")).toHaveText("Loading your saved chat…");
+  await expectFrame(page);
+  releaseSession();
   const input = page.getByLabel("Your question");
   await expect(input).toBeEnabled();
   let submissions = 0;
@@ -546,8 +628,27 @@ test("EC-UI-02 EC-UI-07 starter questions, quiet notices and reduced motion", as
       submissions++;
   });
   await page.evaluate(() => document.fonts.ready);
-  for (const width of [320, 390, 768, 1280]) {
-    await page.setViewportSize({ width, height: 900 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Next suggestion" }).click();
+  await expect(page.getByText("2 / 3", { exact: true })).toBeVisible();
+  await expect(input).toHaveValue("");
+  expect(submissions).toBe(0);
+  await page.getByRole("button", { name: "Previous suggestion" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("1 / 3", { exact: true })).toBeVisible();
+  const suggestionRail = page.getByRole("group", {
+    name: "Suggested questions",
+  });
+  await suggestionRail.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+  await expect(page.getByText("3 / 3", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Food safety", exact: true }).click();
+  await expect(page.getByText("1 / 3", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Everyday nutrition", exact: true })
+    .click();
+  for (const { width, height } of frameSizes) {
+    await page.setViewportSize({ width, height });
+    await expectFrame(page, true);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= innerWidth,
@@ -559,6 +660,13 @@ test("EC-UI-02 EC-UI-07 starter questions, quiet notices and reduced motion", as
     });
   }
   const plate = page.locator('svg[viewBox="0 0 320 280"]');
+  const ambient = page.locator('main > div[aria-hidden="true"]');
+  await expect(ambient).toHaveCSS("pointer-events", "none");
+  expect(
+    await ambient.evaluate(
+      (el) => getComputedStyle(el, "::before").animationName,
+    ),
+  ).not.toBe("none");
   await plate.hover({ position: { x: 40, y: 40 } });
   await expect
     .poll(() =>
@@ -604,7 +712,7 @@ test("EC-UI-02 EC-UI-07 starter questions, quiet notices and reduced motion", as
     page.getByRole("button", { name: "Close chat information" }),
   ).toBeFocused();
   await expect(
-    page.getByRole("heading", { name: "Sources", exact: true }),
+    page.getByRole("heading", { name: "About the answers", exact: true }),
   ).toBeVisible();
   await page.screenshot({
     path: "test-results/redesign-about.png",
@@ -618,7 +726,20 @@ test("EC-UI-02 EC-UI-07 starter questions, quiet notices and reduced motion", as
   await page.keyboard.press("Escape");
   await expect(about).toBeFocused();
   await expect(input).toHaveValue("How should I store leftover rice safely?");
+  // Finish the earlier normal-motion pulse before checking a new reduced-motion selection.
+  await expect
+    .poll(() =>
+      input.evaluate(
+        (element) => element.closest("form")?.getAnimations().length ?? 0,
+      ),
+    )
+    .toBe(0);
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect
+    .poll(() =>
+      ambient.evaluate((el) => getComputedStyle(el, "::before").animationName),
+    )
+    .toBe("none");
   await plate.hover({ position: { x: 40, y: 40 } });
   await expect(plate).toHaveCSS("transform", "none");
   await expect
@@ -644,4 +765,46 @@ test("EC-UI-02 EC-UI-07 starter questions, quiet notices and reduced motion", as
     "none",
   );
   expect(submissions).toBe(0);
+  // 1280x720 at 200% browser zoom has a 640x360 CSS layout viewport.
+  // Exercise that layout separately from physical-device/browser-zoom verification.
+  await page.setViewportSize({ width: 640, height: 360 });
+  await input.focus();
+  await input.fill("Short-window draft\n".repeat(6));
+  await expect(input).toBeInViewport();
+  await expect(
+    page.getByRole("button", { name: "Send", exact: true }),
+  ).toBeInViewport();
+  await page.screenshot({
+    path: "test-results/viewport-zoom-equivalent.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 360 });
+  await expect(input).toBeInViewport();
+  await expect(
+    page.getByRole("button", { name: "Send", exact: true }),
+  ).toBeInViewport();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "test-results/viewport-keyboard-equivalent.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await input.fill("");
+  await expectFrame(page, true);
+  const info = page.getByRole("button", {
+    name: "About this chat",
+    exact: true,
+  });
+  await info.click();
+  await page.setViewportSize({ width: 640, height: 360 });
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page
+    .getByRole("heading", { name: "How this chat uses your data" })
+    .scrollIntoViewIfNeeded();
+  await page.keyboard.press("Escape");
+  await expect(info).toBeFocused();
 });

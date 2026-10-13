@@ -33,9 +33,8 @@ export function ChatInfo({
             ×
           </button>
         </div>
-        <section className={styles.sources} aria-labelledby="sources-title">
-          <h3 id="sources-title">Sources</h3>
-          <p>No sources available in this version.</p>
+        <section aria-labelledby="limits-title">
+          <h3 id="limits-title">About the answers</h3>
           <p>Answers may be inaccurate. This version does not check sources.</p>
           <p>
             For general education. Calorie or weight targets and medical advice

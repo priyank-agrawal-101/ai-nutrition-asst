@@ -587,3 +587,9 @@ Expiry is the earlier of capture plus 24 hours and session expiry. Maintenance r
 Migrations now run in manifest order and readiness requires every matching checksum. The original 0001 bytes are unchanged. This is an additive upgrade; it never resets local conversations.
 
 The session API's `latest_conversation_id` is derived on read from this session's live, non-empty conversations ordered by `updated_at`, then `created_at` and ID. No new persistent cursor, migration or history copy is introduced. It provides a fallback when the browser's tab marker is lost; normal conversation reads still enforce session ownership and expiry.
+
+## Phase 3 archive restoration correction
+
+[Migration 0005](../migrations/0005_restore_validation.sql) sets `valid_answer_v1(jsonb)`'s function-local search path to `pg_catalog, public`. A real PostgreSQL custom-archive restore exposed its unqualified `valid_text_v1` call under the empty session search path used by `pg_restore`. The change preserves the function body, constraints and saved content; it edits no earlier migration. Runtime roles cannot create objects in `public`.
+
+[The restoration rehearsal](../tests/recovery/restore.test.ts) dumps synthetic committed history, revokes access after that recovery point, restores into a separate owned database, verifies the older history, then revokes all restored sessions and purges payload before any public app starts. It verifies source data remains intact. See [testing](testing.md#phase-3-release-verification) for the adverse first run and corrected result.

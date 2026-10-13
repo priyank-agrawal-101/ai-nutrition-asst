@@ -2,7 +2,7 @@
 
 Last updated: 13 October 2026.
 
-**Current stage:** Phase 1 is locally built and tested. Phase 2 implements Groq, safety enforcement and the chat UI, with software and live smoke evidence recorded; actual screen-reader review remains pending. Full Phase 3 evaluation and public deployment have not been completed. The [implementation plan](phase-wise-implementation-plan.md) owns phase status.
+**Current stage:** The local app is built and tested. The assignment evaluation now has model-assisted per-question counts, a three-answer substance/numeric comparison and 16/16 required refusals. Known factual, quality and extension failures are preserved for M2, without question-specific patches. Consequential food-safety release disposition, public-hosting preparation and deployed verification remain outstanding. Additional human accessibility review is unperformed. The [implementation plan](phase-wise-implementation-plan.md) owns phase status.
 
 ## Our approach
 
@@ -53,7 +53,11 @@ Phase 1 implementation, 11 October 2026: created the single pinned Next.js app a
 
 ## Next step
 
-The status/rate-limit repair and temporary local diagnostic capture are implemented. The owner-requested `m1-prompts-v2` classification update has software verification and a [recorded live regression](evaluation.md#classifier-v2-regression); consult that record for completed and unrun cases. Complete the remaining policy-extension, factual and accessibility reviews under Phase 3 in the [implementation plan](phase-wise-implementation-plan.md). Preserve stored data and recovery guarantees, and distinguish built, tested, evaluated and deployed work.
+Proceed with Railway delivery preparation and the consequential food-safety release disposition. The [assignment review](failure-log.md#assignment-baseline-review-13-october-2026) is recorded; do not start another correction/regression cycle just to erase model findings. Preserve stored data and the M1 baseline for M2, and distinguish recorded evaluation from human validation and public deployment.
+
+## 13 October 2026: Complete the assignment failure record
+
+Following the owner's scope correction, reviewed the saved ten answers and three fresh protein answers without new model calls. Recorded 136 unsupported propositions in core answers and 37 in repeat answers, zero shifting common numeric fields, no uselessly hedged core responses and all 16 required refusals. Compared non-numerical substance and retained attribution, food-safety and claim-coverage concerns. Updated the evaluation, safety and delivery records to remove automatic correction requirements for ordinary model findings. The private authored ledger is a new immutable revision; original responses and pending human-review fields remain intact. No runtime, prompt, schema or stored-data change was made.
 
 ## 11 October 2026: Phase 2 implementation
 
@@ -205,3 +209,12 @@ The owner reported missing styling after the Sources change. The running server 
 ## Screen-fitting chat and mobile refinement, 13 October 2026
 
 The owner requested a chat that fits the screen, then asked for more breathing room on mobile and a more engaging visual experience. The app now reserves space for the composer and Sources while messages scroll internally. Mobile starters use swipeable cards instead of a dense stack. Gentle background/food-plate motion and interaction feedback respect reduced motion and hidden tabs. Short or enlarged views retain accessible scrolling. [Verification](testing.md#viewport-fitting-layout-verification) records software checks, screenshots, preserved local data and the remaining physical-device review.
+
+
+## Phase 3 implementation and review handoff, 13 October 2026
+
+Completed missing policy-extension capture and preserved all adverse results. Added a guarded continuation/diagnostic runner and a report generator that separates primary failures, diagnostics and pending human judgments. Prepared dated references and an assisted three-answer numerical comparison. Actual live use was 36 calls/46,981 tokens under the approved 120-call/120,000-token total.
+
+A real PostgreSQL archive rehearsal found an unqualified function lookup that broke restore. Additive migration 0005 fixes that lookup; the rehearsal verifies restored-session invalidation and purge while preserving source data. Browser projects now receive separate databases so testing cannot exhaust shared bootstrap quotas. Firefox's smallest-screen text metrics exposed a four-pixel spacing correction. [Testing](testing.md#phase-3-release-verification) records results; [the review disposition](evaluations/phase3-review.md) identifies what remains.
+
+The owner will review factual evidence and screen-reader behavior. Use "An experimental project created by Priyank Agrawal"; no dedicated support contact or ZDR requirement is added to the assignment. The next step is human review and a bounded general model-behavior correction/regression, not public deployment.

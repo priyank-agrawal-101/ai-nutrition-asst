@@ -1,8 +1,22 @@
 # Gusto NutriBite: Evaluation Plan
 
-Status: Adopted M1 evaluation method and fixed-question set, 11 October 2026. Classifier-v2 baseline route/persistence checks passed 39/39; policy extensions are partial (5/29). Independent factual review and public deployment remain pending.
+Status: Assignment-sized model-assisted review recorded: ten answers, grouped failure counts, three-sample substance comparison and 16/16 required refusals. All 39 baseline and 29 extension primary slots are captured. Extensions passed 23/29 with adverse outcomes preserved separately. Independent human factual/accessibility sign-off and public deployment are not claimed.
 
-Last updated: 11 October 2026.
+Last updated: 13 October 2026.
+
+## Phase 3 implementation and review entry point
+
+**Owner direction, 13 October 2026:** proceed according to the assignment: record failures, do not patch around the ten questions. [The assignment baseline review](failure-log.md#assignment-baseline-review-13-october-2026) is the current M1 summary, using the unchanged F01-F05 counting definitions below. It records 136 unsupported propositions in the ten answers, 37 in the repeat group, zero shifting comparable numeric fields, and all 16 expected baseline refusals. Its authored proposition ledger and substantive comparison are in private `.tmp/phase3/assignment-review-v1/`. This is model-assisted evidence with identified limits, not a claim of human or clinical validation.
+
+The more extensive human rating/attribution protocol below remains available for deeper review; it is not an instruction to perfect the model or rerun until every extension passes. Keep the original pending human fields and failed observations intact. Required exclusion, validation and access protections remain acceptance requirements. Potentially harmful factual findings still need an explicit safety disposition before ordinary public operation; unsupported facts alone do not require a prompt change.
+
+The [13 October review disposition](evaluations/phase3-review.md) owns actual current findings, primary/diagnostic counts, the assisted three-answer comparison and outstanding human work. The [reference pack](evaluations/reference-pack-v1.md) records accessed sources and unresolved gaps. The owner agreed to be the human reviewer; no completed human sign-off is implied.
+
+`npm run eval:groq` now accepts `LIVE_CONTINUE_FROM` pointing to an earlier private run. It verifies unchanged effective prompts, settings and policy plus exact input text before selecting only unobserved extension groups. `LIVE_DIAGNOSTIC=true` instead selects previously failed groups in a separately labeled run; it never replaces primary records. Each invocation still requires a fresh `LIVE_PRIOR_USAGE_FILE`, explicit `LIVE_MAX_CALLS`/`LIVE_MAX_TOKENS` and its own allocation within the owner-approved total. The original whole-baseline/probe mode remains available. Normal CI never runs this command.
+
+To generate a fresh review packet without provider calls, set `EVAL_RUN_DIRS` to a JSON array of private `.tmp/live/<run-id>` directories and `EVAL_REPORT_DIR` to a new directory under this project's `.tmp`, then run `npm run eval:report`. The generator refuses an existing output filename, duplicate primary slots or incomparable configurations. For this review, the three run IDs are `68ffcc63d8f94b0b83e624f671cb129d`, `97b9d809eeda49eea34cfe8dc331bd02` and `d7c4122d7de7478a95fe5daf88438644`; the generated packet is `.tmp/phase3/review-v1/review-packet.md`, with structured review fields in `review-draft.json`.
+
+The generator deliberately leaves human ledgers and ratings pending. The separate assignment review supplies authored F01-F05 observations without overwriting those fields. Later human review creates a new attributed revision; capture, model-assisted review and human review remain distinct.
 
 Product: **Gusto NutriBite — Your personal AI nutrition companion**. Project: `ai-nutrition-asst`.
 

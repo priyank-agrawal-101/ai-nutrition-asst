@@ -12,6 +12,35 @@ type Group = {
     text_hash: string;
   }[];
 };
+// Resume only wholly unobserved groups. A failed observation is evidence, not
+// permission to silently replace it, and multi-turn histories stay intact.
+export function remainingExtensions(
+  fixture: { groups: Group[] },
+  previous: { suite: string; id: string; index: number; question: string }[],
+): Group[] {
+  const seen = new Set<string>();
+  for (const result of previous) {
+    const group = fixture.groups.find(
+      (g) => g.suite === result.suite && g.id === result.id,
+    );
+    if (group?.turns[result.index]?.question !== result.question)
+      throw new Error("Previous selection differs from the frozen questions");
+    const key = `${result.suite}/${result.id}/${result.index}`;
+    if (seen.has(key)) throw new Error("Duplicate previous sample");
+    seen.add(key);
+  }
+  return fixture.groups.filter((group) => {
+    if (group.suite !== "policy_extensions") return false;
+    const observed = group.turns.filter((_, i) =>
+      seen.has(`${group.suite}/${group.id}/${i}`),
+    ).length;
+    if (observed > 0 && observed !== group.turns.length)
+      throw new Error(
+        "Partially observed history needs a separate diagnostic run",
+      );
+    return observed === 0;
+  });
+}
 export async function evaluationFixtures() {
   const evaluation = await readFile("docs/evaluation.md", "utf8");
   const catalogue = await readFile("docs/edge-cases.md", "utf8");

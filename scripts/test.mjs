@@ -8,9 +8,26 @@ import { startCluster, child, exited, freePort, waitFor } from "./postgres.mjs";
 import { migrate } from "./migration-lib.mjs";
 
 const mode = process.argv[2];
-if (!["integration", "browser", "matrix"].includes(mode))
-  throw new Error("Choose integration, browser or matrix");
-if (mode !== "integration") await access(".next/BUILD_ID");
+if (!["integration", "restore", "browser", "matrix"].includes(mode))
+  throw new Error("Choose integration, restore, browser or matrix");
+const browserMode = ["browser", "matrix"].includes(mode);
+if (browserMode) await access(".next/BUILD_ID");
+const projects = ["chromium", "firefox", "webkit", "mobile"];
+const project = process.argv[3] ?? "chromium";
+if (!projects.includes(project)) throw new Error("Unknown browser project");
+if (mode === "matrix") {
+  // Each browser is a fresh synthetic visitor population. Reusing one database
+  // exhausted the real session quota and obscured browser behavior.
+  for (const browser of projects) {
+    const runner = child(
+      process.execPath,
+      ["scripts/test.mjs", "browser", browser],
+      { stdio: "inherit" },
+    );
+    if (await exited(runner)) process.exitCode = 1;
+  }
+  process.exit(process.exitCode ?? 0);
+}
 const run = randomUUID().replaceAll("-", ""),
   name = `nutribite_test_${run}`,
   runtime = `runtime_${run}`,
@@ -113,6 +130,7 @@ try {
     PLAYWRIGHT_BROWSERS_PATH: resolve(".cache/playwright"),
     TEST_BASE_URL: origin,
     TEST_CHILD_ENTRY: childEntry,
+    POSTGRES_TOOLS_DIR: process.env.POSTGRES_TOOLS_DIR,
   };
   const serverEntry = "node_modules/next/dist/bin/next";
   const start = async () => {
@@ -130,15 +148,15 @@ try {
       return response.status === 200;
     }, 60000);
   };
-  if (mode !== "integration") await start();
+  if (browserMode) await start();
   const runner = child(
     process.execPath,
-    mode === "integration"
-      ? ["node_modules/vitest/vitest.mjs", "run", "--project", "integration"]
+    !browserMode
+      ? ["node_modules/vitest/vitest.mjs", "run", "--project", mode]
       : [
           "node_modules/@playwright/test/cli.js",
           "test",
-          ...(mode === "browser" ? ["--project=chromium"] : []),
+          `--project=${project}`,
         ],
     { env, stdio: "inherit" },
   );

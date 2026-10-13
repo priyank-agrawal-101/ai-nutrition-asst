@@ -15,6 +15,10 @@
     {
       "version": "0004_model_diagnostics",
       "checksum": "56f22ef7585dc7793b118918af1b2fe58b733f9769811bf0a6b24cec97a6497c"
+    },
+    {
+      "version": "0005_restore_validation",
+      "checksum": "56d6179bfd8655bb8bfaa65524c437ef62b7fa76fa8dae52dbc0bfd396245847"
     }
   ]
 }

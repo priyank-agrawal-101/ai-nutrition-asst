@@ -4,7 +4,11 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
-import { evaluationFixtures, hash } from "./evaluation-fixtures";
+import {
+  evaluationFixtures,
+  hash,
+  remainingExtensions,
+} from "./evaluation-fixtures";
 import { loadConfig } from "../src/server/config";
 import { Database, rows } from "../src/server/db/connection";
 import { GroqProvider } from "../src/server/llm/groq";
@@ -31,16 +35,83 @@ const directory = z.string().parse(process.env.LIVE_ARTIFACT_DIR);
 const database = new Database(config.databaseUrl);
 const fixture = await evaluationFixtures();
 await readFile(resolve(directory, "manifest.json"));
-const old = z
-  .object({ input_safety: z.string() })
-  .parse(
-    JSON.parse(
-      await readFile(resolve(directory, "old-prompts.json"), "utf8"),
-    ) as unknown,
+const continuing = process.env.LIVE_CONTINUATION === "true";
+const diagnostic = process.env.LIVE_DIAGNOSTIC === "true";
+const old = continuing
+  ? null
+  : z
+      .object({ input_safety: z.string() })
+      .parse(
+        JSON.parse(
+          await readFile(resolve(directory, "old-prompts.json"), "utf8"),
+        ) as unknown,
+      );
+let selectedGroups = fixture.groups;
+if (continuing) {
+  const priorConfig = JSON.parse(
+    await readFile(resolve(directory, "previous-configuration.json"), "utf8"),
+  ) as Record<string, unknown>;
+  for (const [key, value] of Object.entries({
+    promptVersion,
+    promptHashes,
+    policyVersion,
+    templateHash,
+    groqSettings,
+  }))
+    if (JSON.stringify(priorConfig[key]) !== JSON.stringify(value))
+      throw new Error(
+        `Continuation configuration changed: ${key}; run a new full regression`,
+      );
+  const priorResults = z
+    .array(z.record(z.string(), z.unknown()))
+    .parse(
+      JSON.parse(
+        await readFile(resolve(directory, "previous-results.json"), "utf8"),
+      ),
+    );
+  selectedGroups = remainingExtensions(
+    fixture,
+    priorResults
+      .filter((r) => r.type === "app_api")
+      .map((r) =>
+        z
+          .object({
+            suite: z.string(),
+            id: z.string(),
+            index: z.number().int().nonnegative(),
+            question: z.string(),
+          })
+          .parse(r),
+      ),
   );
+  if (diagnostic)
+    selectedGroups = fixture.groups.filter((g) =>
+      priorResults.some(
+        (r) =>
+          r.type === "app_api" &&
+          r.suite === g.suite &&
+          r.id === g.id &&
+          r.verified === false,
+      ),
+    );
+}
 await writeFile(
   resolve(directory, "selection.json"),
-  JSON.stringify(fixture, null, 2),
+  JSON.stringify(
+    {
+      ...fixture,
+      groups: selectedGroups,
+      probes: continuing ? [] : fixture.probes,
+      selection_hash: hash(
+        JSON.stringify({
+          groups: selectedGroups,
+          probes: continuing ? [] : fixture.probes,
+        }),
+      ),
+    },
+    null,
+    2,
+  ),
   { flag: "wx" },
 );
 await writeFile(
@@ -53,7 +124,7 @@ await writeFile(
       templateHash,
       groqSettings,
       providerBudget: config.providerBudget,
-      old_input_hash: hash(old.input_safety),
+      old_input_hash: old ? hash(old.input_safety) : null,
       context_version: "v1",
       content_schema: "m1",
       retries: 0,
@@ -132,7 +203,7 @@ async function pace(reservation: number, estimatedCalls: number) {
 }
 try {
   // Compare the old and new input classifiers only; these are not end-to-end samples.
-  for (const probe of fixture.probes)
+  for (const probe of continuing ? [] : fixture.probes)
     for (const version of ["v1", "v2"] as const) {
       const context = JSON.stringify({
         version: "v1",
@@ -149,7 +220,7 @@ try {
         current_question: probe.question,
       });
       const body = requestBody("input_safety", context, null);
-      if (version === "v1") body.messages[0]!.content = old.input_safety;
+      if (version === "v1" && old) body.messages[0]!.content = old.input_safety;
       const reservation =
         tokens(JSON.stringify(body)) +
         128 +
@@ -215,7 +286,7 @@ try {
       }
       await save();
     }
-  for (const [groupIndex, group] of fixture.groups.entries()) {
+  for (const [groupIndex, group] of selectedGroups.entries()) {
     // Normal limit is 20 conversations/session; do not bypass it for evaluation.
     if (groupIndex % 15 === 0) {
       cookie = "";
@@ -234,10 +305,9 @@ try {
         group.turns.slice(0, index).map((t) => t.question),
       );
       // Pace before submitting, never retry a first result or disable an app limiter.
-      await pace(
-        codeOnly ? 0 : turn.expected_kind === "answer" ? 7500 : 2600,
-        codeOnly ? 0 : turn.expected_kind === "answer" ? 3 : 1,
-      );
+      // The expectation is not the observed route. Reserve the full pipeline
+      // even for an expected refusal so an unexpected allow remains observable.
+      await pace(codeOnly ? 0 : 7500, codeOnly ? 0 : 3);
       submittedAt = Date.now();
       const operation = await api(
         `conversations/${cid}/turns`,
@@ -270,6 +340,7 @@ try {
       if (!verified) process.exitCode = 1;
       results.push({
         type: "app_api",
+        channel: diagnostic ? "diagnostic" : "primary",
         suite: group.suite,
         id: group.id,
         index,

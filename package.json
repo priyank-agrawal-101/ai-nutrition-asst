@@ -20,6 +20,7 @@
     "diagnostics:purge": "node scripts/diagnostics.mjs purge",
     "smoke:groq": "node scripts/live-smoke.mjs",
     "eval:groq": "node scripts/live-regression.mjs",
+    "eval:report": "node scripts/run-ts.mjs scripts/evaluation-report.ts",
     "db:migrate": "node scripts/migrate.mjs",
     "maintenance": "node scripts/run-ts.mjs scripts/maintenance.ts",
     "check:format": "prettier --check src tests scripts migrations *.json *.mjs *.ts .github/workflows/ci.yml",
@@ -27,6 +28,7 @@
     "check:types": "tsc --noEmit",
     "test:unit": "vitest run --project unit",
     "test:integration": "node scripts/test.mjs integration",
+    "test:restore": "node scripts/test.mjs restore",
     "test:e2e": "node scripts/test.mjs browser",
     "test:browser-matrix": "node scripts/test.mjs matrix",
     "check": "node scripts/check.mjs"

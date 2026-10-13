@@ -127,8 +127,8 @@
     },
     {
       "id": "EC-DATA-10",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/recovery/restore.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-DATA-11",
@@ -598,8 +598,8 @@
     },
     {
       "id": "EC-OPS-11",
-      "tests": [],
-      "status": "pending broader M1 verification in phases 2-3"
+      "tests": ["tests/recovery/restore.test.ts"],
+      "status": "case-linked; inspect covered variants"
     },
     {
       "id": "EC-OPS-12",

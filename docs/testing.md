@@ -1,8 +1,51 @@
 # Gusto NutriBite: Software Testing
 
-Status: Runnable Phase 1 checks and isolated PostgreSQL/browser harness implemented, 11 October 2026. See the dated evidence below; remaining M1 variants are not implied to pass.
+Status: Phase 3 verification is recorded below. Software checks are separate from live model/factual review; remaining M1 variants are not implied to pass.
 
-Last updated: 11 October 2026.
+Last updated: 13 October 2026.
+
+## Assignment review verification, 13 October 2026
+
+The [assignment failure record](failure-log.md#assignment-baseline-review-13-october-2026) was completed from existing synthetic captures with model-assisted authorship. This documentation/review-only step made no provider calls, runtime changes, migrations or restarts; the earlier software suites were not rerun or claimed as new passes.
+
+- Verified 13 reviewed samples, 173 unique authored proposition IDs and reconciled core/repeat counts (136/37).
+- Verified all ten question strings still match the evaluation owner and SHA-256 checksums of the source packet and all three original result files are unchanged.
+- Rechecked the 26 baseline route results and the 16 captured refusal kinds, referrals and empty claim lists. This inspects existing live evidence; it is not a new model run.
+- `node scripts/docs-check.mjs`, `node scripts/coverage.mjs` and `git diff --check` passed: 696 local Markdown targets at the first check and 170 mapped catalogue cases. Private review artifacts remain ignored by Git.
+- The first provenance check used the wrong filename, `results.jsonl`; the runner actually stores `results.json`. Correcting the verification path produced matching checksums without modifying artifacts.
+
+Production remains explicitly disabled in `src/server/config.ts`; no deployment or human accessibility/factual sign-off is claimed by these checks.
+
+## Phase 3 release verification
+
+The owner requested Phase 3 on 13 October 2026. Work began on a clean tree. Real model observations and unresolved factual/policy findings belong to [the review disposition](evaluations/phase3-review.md); the software evidence below does not clear them.
+
+- `npm run build`: passed with additive migration 0005, the Firefox spacing correction, explicit WebKit dialog focus restoration and the owner attribution. No app was serving the build while it was overwritten.
+- `npm run test:integration`: 52 passed using only the scripted provider and an isolated database. This includes schema/source rejection, ownership/CSRF, quotas, safety shutdown, cleanup, persistence faults and forced restart recovery.
+- `npm run test:restore`: one PostgreSQL 17.9 custom-archive rehearsal passed after the search-path correction. Original failure and correction are described below.
+- `npm run check`: passed on Node 24.14.0/npm 11.11.0: format, lint, types, 71 unit tests, 170-case mapping and 690 local Markdown targets. The first map check exposed stale generated statuses after the new restore test; regenerating the map fixed it.
+- `npm run test:browser-matrix`: all 40 passed (10 each in Chromium, Firefox, WebKit and mobile) after the spacing and explicit dialog-focus corrections. Chromium is the `test:e2e` project exercised through the matrix entry point. The final log is private at `.tmp/phase3/browser-matrix-verified.log`. A configured CI job is not evidence of a remote CI run.
+- Production dependency audit: zero reported vulnerabilities in the current lockfile (`npm audit --omit=dev`). A scan of 24 client CSS/JS assets found no configured provider/local security secrets or server prompt sentinels. This is scoped evidence, not proof of absence of every vulnerability.
+
+### Failures found and retained
+
+1. The original 40-test matrix shared one database across browsers. Chromium passed; later projects hit the real session-bootstrap quota. Firefox also could not create a page in the sandbox (`Cannot read properties of undefined (reading '_page')`). Each browser now has its own isolated database; the same pinned Firefox binary launches successfully outside the sandbox. No application quota was relaxed.
+2. With isolation fixed, Firefox passed 9/10 and exposed a 320×640 welcome-area overflow: message space 269 px versus 271 px content. Other page controls fit. A four-pixel decorative-gap reduction fixes native text-metric differences without reducing readable text or changing overflow assertions. The final matrix also exposed WebKit's lack of focus restoration when a pointer-opened dialog closes. An explicit close handler now restores the About button; the test retains its focus assertion. All four projects subsequently passed; the final results are listed above.
+3. The first real restore failed while copying assistant messages because `valid_answer_v1` could not resolve `valid_text_v1` under `pg_restore`'s empty search path. [Migration 0005](../migrations/0005_restore_validation.sql) sets the function's trusted search path. The repeated rehearsal restored saved content, detected the risk of a post-backup revocation disappearing, denied all restored sessions before purge, ran cleanup twice, and verified all payload tables empty while preserving schema/slots and the source database's two messages.
+
+### Reproduce the new checks
+
+Use PostgreSQL 17 client tools (`pg_dump`, `pg_restore`). The embedded server package does not ship them. Set `POSTGRES_TOOLS_DIR` to their directory, or put version 17 tools on PATH, then run `npm run test:restore`. This uses only harness-created synthetic databases, never `.tmp/local`. The test fails if tools are missing or the major version differs. On this Windows checkout the verified tools are in `.tmp/phase3/postgresql-tools/pgsql/bin`, downloaded from EDB's PostgreSQL 17.9 Windows binary distribution.
+
+Install the pinned browser binaries with `npx playwright install chromium firefox webkit`, using this project's `PLAYWRIGHT_BROWSERS_PATH`, then run `npm run test:browser-matrix`. The command creates and cleans four separate marked databases, one per project. Firefox requires an unsandboxed local process in this environment. The CI workflow installs the corresponding Linux dependencies and PostgreSQL 17 client tools; its remote execution remains unverified.
+
+The review packet generator is exercised with the two immutable primary runs and the diagnostic run. Its unit checks prevent duplicate primary slots and diagnostic results from masking primary errors, and preserve missing coverage. It emits `human_review: pending` and `release_cleared: false`; it cannot manufacture human sign-off.
+
+### Local handoff
+
+The final app is served at `http://127.0.0.1:51261/`. The page, two linked CSS files, seven linked JavaScript files and both health endpoints returned 200 after restart. The rendered page contains the owner attribution. Migration 0005 applied additively; saved counts remained 24 messages and 35 conversations, with no running turn. All 36 new evaluation charges were imported once by call ID, preserving quota integrity: the local rolling ledger held 43 calls/56,642 charged tokens at handoff. No provider call was made for restart verification.
+
+Final browser screenshots were inspected, including the About dialog attribution/privacy notice. Physical mobile keyboards, actual assistive-technology listening and public hosting remain unverified. The original source assignment, fixed evaluation questions, prior run outputs and earlier migrations remain unchanged.
 
 ## 1. What this document decides
 

@@ -14,6 +14,15 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: "restore",
+          include: ["tests/recovery/**/*.test.ts"],
+          fileParallelism: false,
+          testTimeout: 60000,
+        },
+      },
+      {
+        extends: true,
+        test: {
           name: "unit",
           include: ["tests/unit/**/*.test.ts"],
           setupFiles: ["tests/support/no-network.ts"],

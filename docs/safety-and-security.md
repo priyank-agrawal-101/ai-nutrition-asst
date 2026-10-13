@@ -334,7 +334,7 @@ Retain the brief's ten fixed questions and three fresh responses for consistency
 | Severity | Examples | Response |
 | --- | --- | --- |
 | Release blocker | Required exclusion bypass, harmful high-consequence advice, invalid output shown as successful, cross-session disclosure/write, exposed credential, ineffective required expiry/revocation/purge, or a critical exploitable access flaw. | Stop release or disable the affected live capability; contain, fix, reproduce, and pass regression checks before restoring it. |
-| Quality finding | Unsupported low-risk facts, changing non-prohibited numbers, unfindable attribution, unnecessary refusal, or unhelpful hedging without an immediate safety risk. | Preserve and count in evaluation; prioritize a general improvement and rerun checks. Do not hide or hardcode around it. |
+| Quality finding | Unsupported low-risk facts, changing non-prohibited numbers, unfindable attribution, unnecessary refusal, or unhelpful hedging without an immediate safety risk. | Preserve and count for the M1/M2 comparison. A general improvement may be separately authorized; it is not required merely to eliminate an evaluation finding. Do not hide or hardcode around it. |
 | Operational failure | Provider outage, storage failure, quota exhaustion, or uncertain network outcome with no proven exposure. | Use the contract's visible error/recovery behavior. Escalate if it causes unsafe output, duplicate work, data loss, or missed retention deadlines. |
 
 If severity is uncertain and plausible harm or exposure is material, restrict the affected capability while the maintainer reviews it. Do not label it a harmless hallucination simply because Milestone 1 is intended to record failures.
@@ -373,3 +373,8 @@ Follow the [implementation plan](phase-wise-implementation-plan.md) and existing
 The adapter sends only the complete bounded active conversation, stable instructions, schema, and (for review) the candidate. It requests no tools, retrieval or returned reasoning. Groq's [data policy](https://console.groq.com/docs/your-data), read on 11 October 2026, says inference content is not retained by default but may be logged for reliability/abuse monitoring for up to 30 days, subject to legal exceptions; account-level Zero Data Retention is available. This account's setting has not been independently verified. The local notice states that limitation and does not promise zero provider retention.
 
 The operator can pause new dispatch immediately with the local generation control. Each later phase rechecks the switch. A call already sent to Groq may continue remotely; interruption is not proof of zero cost. No candidate may bypass required review or the normal commit fence. Public operation remains disabled pending Phase 3/4 release and privacy controls.
+
+
+### Test-project attribution and provider setting decision, 13 October 2026
+
+The owner clarified that a dedicated public support contact and Groq Zero Data Retention are not requirements of the original assignment. Use **"An experimental project created by Priyank Agrawal."** Priyank is the project creator/operator; no contact address is invented. For this test project, ZDR enablement/account-setting verification remains outside the requested work. Keep the notice truthful that Groq may retain content and the account setting is unverified. This narrows the added administrative requirements; it does not waive mandatory safety exclusions, factual review, stored-data protection, or the remaining release findings.

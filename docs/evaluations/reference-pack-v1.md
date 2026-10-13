@@ -1,0 +1,25 @@
+# Phase 3 factual-review reference pack
+
+Version: `reference-pack-v1`, accessed 13 October 2026. Prepared by Codex for the project owner's human review. These are external review references, never runtime M1 inputs. Saved answers retain `source: null`.
+
+## Material inspected
+
+| ID | Publisher and exact title | Version/date and locator | Relevant evidence and limits |
+| --- | --- | --- | --- |
+| REF-01 | USDA FSIS, [The Big Thaw — Safe Defrosting Methods](https://www.fsis.usda.gov/food-safety/safe-food-handling-and-preparation/food-safety-basics/big-thaw-safe-defrosting-methods) | Page accessed successfully; publication/update date not established. Sections Refrigerator Thawing, Cold Water Thawing, Microwave Thawing. | Refrigerator thawing: a large turkey needs at least 24 hours per 5 lb; even 1 lb of ground meat or chicken breasts can need a full day. Food thawed in the refrigerator may be refrozen without cooking, with possible quality loss. Cold-water thawing requires a leak-proof bag, water changes every 30 minutes and immediate cooking. Microwave-thawed food also needs immediate cooking. US guidance; examples depend on food, size and refrigerator temperature, not one universal hours/kg rule. |
+| REF-02 | USDA FSIS, [Leftovers and Food Safety](https://www.fsis.usda.gov/food-safety/safe-food-handling-and-preparation/food-safety-basics/leftovers-and-food-safety) | Page accessed successfully; publication/update date not established. Cool Food Rapidly, Store Leftovers Safely, Reheat Leftovers Safely. | Divide food into shallow containers; hot food can go directly into refrigeration. Refrigerate within 2 hours, or 1 hour above 90°F. Keep at 40°F or below. The general leftover guidance is 3–4 refrigerated days and reheating to 165°F. These are US general-leftover instructions, not proof of a rice-specific duration or that reheating rescues mishandled food. |
+| REF-03 | FSSAI, [Food Safety and Standards (Labelling and Display) Regulations, 2020](https://www.fssai.gov.in/upload/uploadfiles/files/Compendium_Labelling_Display_23_09_2021.pdf) | Version-I, 23 September 2021. PDF pp. 1, 3–4: definitions 2(1)(c), 2(1)(u); p. 18: storage conditions. Text extracted and definition page visually inspected. | Best-before concerns quality under stated storage conditions; food may remain safe afterward, but unsafe product must not be sold. Use-by/expiry marks the estimated period after which safety may not remain and sale/distribution is prohibited. Neither definition makes normal smell/taste proof of safety. Indian jurisdiction. This inspected historical compendium does **not** establish that all later amendments are covered. |
+| REF-04 | WHO, [Healthy diet](https://www.who.int/news-room/fact-sheets/detail/healthy-diet) | Page accessed successfully; update date not established. Carbohydrates and Fats sections. | People over 10 should aim for at least 25 g/day of naturally occurring dietary fibre. Sources include whole grains, vegetables, fruits and pulses. Unsaturated fats are preferable to saturated/trans fats. This does not establish a universal sex-specific fibre amount, oil smoke-point ranking or vegetarian protein increment. |
+| REF-05 | NIDDK, [Eating, Diet, & Nutrition for Constipation](https://www.niddk.nih.gov/health-information/digestive-diseases/constipation/eating-diet-nutrition) | Page accessed successfully. Fibre section. | Adult fibre amounts depend on age and sex. This page concerns constipation and US guidance; review its context before applying it to Q03. It is not a personal treatment recommendation from this app. |
+
+Full extracted pages and the FSSAI PDF are private in `.tmp/phase3/references/`. They contain public reference material only. The table retains durable public locators; raw downloads are not app assets.
+
+## Access and evidence gaps
+
+- UK Food Standards Agency's home food fact checker and best-before/use-by pages returned 503, including the alternative requests. They were **not** treated as corroboration.
+- NIH Office of Dietary Supplements' Iron professional/consumer pages returned 403. Iron-specific claims remain pending rather than being accepted from memory.
+- An alternative USDA rice page failed certificate validation; validation was not disabled. Rice-specific storage duration, bacterial/toxin qualifications and the answer's reheating assurance remain unresolved.
+- FSSAI's current regulations index did not yield an accessible newer labeling compendium in this pass. Confirm amendments before relying on the 2021 copy as current law.
+- Protein requirements/vegetarian adjustments, cooking-retention comparisons, pulse-processing claims, oil smoke points and breakfast outcomes need additional authoritative material. The generic attributions in the protein responses remain unlocated, not proven fabricated.
+
+Use [the evaluation protocol](../evaluation.md#6-human-review-of-facts-claims-and-sources) to add dated references and human judgments. This initial pack is incomplete; do not turn access failures or model agreement into factual clearance.

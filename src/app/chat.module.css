@@ -991,7 +991,8 @@
 }
 @media (max-width: 600px) and (max-height: 740px) {
   .empty {
-    gap: 10px;
+    /* Keep room for native text metrics in Firefox at 320 x 640. */
+    gap: 6px;
   }
   .welcomeHero {
     padding: 0;

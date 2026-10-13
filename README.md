@@ -2,6 +2,8 @@
 
 **Your personal AI nutrition companion**
 
+An experimental project created by **Priyank Agrawal**.
+
 An AI-powered nutrition assistant in development for India-first everyday adults, with room to expand globally. It answers food, nutrition, cooking, and food-safety questions. The initial milestones cover structured conversational answers, safety enforcement, evaluation, and a later retrieval extension.
 
 **The name:** Gusto represents the joy of eating. NutriBite combines nutrition with a bite of food: understanding what we eat through small, practical insights. Together, the name connects food enjoyment with nutritional awareness. See the [full name and tagline meaning](docs/product-positioning.md#3-name-tagline-and-brand-meaning).
@@ -10,7 +12,7 @@ The [problem statement](docs/problemStatement.md) remains the source of truth fo
 
 ## Run the local assistant
 
-The local assistant has PostgreSQL chat persistence, anonymous sessions, recovery, safety gates and Groq-backed structured answers. Configure the ignored `.env` with `PROVIDER_MODE=groq` and `GROQ_API_KEY`. The selected model is **openai/gpt-oss-120b**. Use `PROVIDER_MODE=scripted` for offline tests. Full factual evaluation and public deployment remain later phases.
+The local assistant has PostgreSQL chat persistence, anonymous sessions, recovery, safety gates and Groq-backed structured answers. Configure the ignored `.env` with `PROVIDER_MODE=groq` and `GROQ_API_KEY`. The selected model is **openai/gpt-oss-120b**. Use `PROVIDER_MODE=scripted` for offline tests. The assignment evaluation is recorded with model-assisted review: ten answers, grouped failures, three-sample consistency and 16/16 required refusals. Known model failures remain preserved for M2. Public deployment and consequential food-safety release review are pending.
 
 Use Node **24.14.0** and npm **11.11.0** (see [.node-version](.node-version) and [package.json](package.json)):
 
@@ -43,13 +45,13 @@ The order below is a reading map, not a mandatory document-production queue. Cre
 | 7 | [docs/data-model.md](docs/data-model.md) | Stored data, relationships, and database changes. | Initial and additive PostgreSQL migrations verified |
 | 8 | [docs/safety-and-security.md](docs/safety-and-security.md) | Safety, privacy, access, and abuse prevention. | Local safety checks passed; release review pending |
 | 9 | [Wise design reference](docs/design-references/wise/DESIGN.md) + [HTML preview](docs/design-references/wise/preview.html) | Preserved original reference assets; current design lives in UX and application CSS. | Superseded by owner-authorized frontend redesign |
-| 10 | [docs/prompt-spec.md](docs/prompt-spec.md) | Instructions, templates, context, and prompt change reasons. | Adopted baseline; not evaluated |
+| 10 | [docs/prompt-spec.md](docs/prompt-spec.md) | Instructions, templates, context, and prompt change reasons. | v2 baseline captured; human review pending |
 | 11 | [docs/edge-cases.md](docs/edge-cases.md) | Central scenario catalogue, with M1, deferred, and M2 applicability. | Selected Phase 1/2 variants tested; see coverage map |
-| 12 | [docs/evaluation.md](docs/evaluation.md) | Ten questions, safety selection, scoring, consistency, and comparisons. | Method adopted; evaluation not run |
+| 12 | [docs/evaluation.md](docs/evaluation.md) | Ten questions, safety selection, scoring, consistency, and comparisons. | Baseline and extensions captured; factual/policy findings open |
 | 13 | [docs/testing.md](docs/testing.md) | Test layers, isolation, faults, command/CI contract, and evidence. | Runnable checks and Phase 1/2 evidence |
 | 14 | [docs/code-conventions.md](docs/code-conventions.md) | Code style, imports, schemas, parsing, and dependency discipline. | Implementation baseline |
 | 15 | [docs/token-optimization-and-efficiency.md](docs/token-optimization-and-efficiency.md) | Reducing model usage, cost, response time, and repeated work. | Initial guidance |
-| 16 | [docs/phase-wise-implementation-plan.md](docs/phase-wise-implementation-plan.md) | Four delivery phases, dependencies, completion criteria, and evidence tracking. | Phase 2 implemented; sign-off gap recorded in plan |
+| 16 | [docs/phase-wise-implementation-plan.md](docs/phase-wise-implementation-plan.md) | Four delivery phases, dependencies, completion criteria, and evidence tracking. | Phase 3 implemented in part; review/clearance gaps recorded |
 | 17 | [AGENTS.md](AGENTS.md) | Short authority map, project boundaries, and planned/verified commands. | Created; implementation guidance |
 | 18 | [docs/deployment-and-operations.md](docs/deployment-and-operations.md) | Environments, hosting, settings, health, maintenance, and recovery. | Local setup verified; public operation pending |
 | 19 | [docs/feature-backlog.md](docs/feature-backlog.md) | Future ideas awaiting explicit scope decisions. | FB-001 manual deletion deferred |
@@ -58,7 +60,7 @@ The order below is a reading map, not a mandatory document-production queue. Cre
 
 [Project documentation: behind the scenes](docs/project-documentation.md) is the short record of our approach, completed steps, and lessons for demos and future projects. It is a progress record, not another specification.
 
-[The failure log](docs/failure-log.md) preserves Phase 2 failures and corrections. Current live evidence is a compatibility smoke check; the full evaluation remains pending.
+[The failure log](docs/failure-log.md#assignment-baseline-review-13-october-2026) records the ten-question baseline, grouped failure counts, substantive consistency comparison and required refusal results. It also preserves historical failures, policy extensions and diagnostics separately. The review is model-assisted; independent human validation is not claimed.
 
 ## Design documents and previews
 
@@ -103,15 +105,15 @@ Local setup is above. Prompt, response schema, safety and stack details remain i
 
 ## Next build decisions
 
-The [implementation plan](docs/phase-wise-implementation-plan.md) records Phase 2 implementation and the classifier-v2 correction. Its [live baseline](docs/evaluation.md#classifier-v2-regression) passed 39/39 route/persistence checks; policy extensions are partial (5/29). Independent factual/accessibility review, full regression and public deployment remain pending.
+The [implementation plan](docs/phase-wise-implementation-plan.md) records the owner's direction to finish M1 according to the assignment: record model failures rather than patch evaluation questions. The [Phase 3 review](docs/evaluations/phase3-review.md) distinguishes 39/39 baseline route/storage checks, 23/29 policy-extension passes and consequential factual review. The next delivery phase is Railway preparation and public verification; no deployment is claimed. Extra policy findings and unperformed human accessibility review remain visible separately.
 
 | Work boundary | Decision or evidence needed | Authoritative home |
 | --- | --- | --- |
 | Scaffold and persistence | Phase 1 implementation and test evidence are linked from the plan. Continue preserving stored data and recovery guarantees. | [Implementation plan](docs/phase-wise-implementation-plan.md) and [testing](docs/testing.md#phase-1-implementation-evidence). |
-| Real model integration | Native schemas and ordinary API smoke checks passed. Run the full fixed-question evaluation through the app pipeline in Phase 3. | [Provider adapter](docs/architecture.md#provider-adapter). |
+| Real model integration | Native schemas, stored API flow and fixed-question evaluation are recorded. Preserve the unchanged M1 evidence for M2. | [Assignment results](docs/failure-log.md#assignment-baseline-review-13-october-2026). |
 | Adopted safety behavior | Local controls are implemented and tested. Complete safety evaluation and release review while keeping brief exclusions fixed. | [Safety handoff](docs/safety-and-security.md#12-decisions-and-implementation-handoff). |
 | Visitor data | Local expiry/revocation and cleanup are tested. Verify deployed retention and backups before public delivery. Manual deletion remains deferred. | [Privacy boundary](docs/api-contract.md#privacy-implementation-boundary). |
-| Chat appearance and accessibility | Responsive and keyboard checks passed. Complete actual screen-reader review and the release browser matrix. | [Design files](#design-documents-and-previews), [UX](docs/ux-flow.md), and [testing](docs/testing.md). |
+| Chat appearance and accessibility | Responsive, keyboard and all 40 browser-matrix tests passed in the recorded run. Actual screen-reader review remains an additional unperformed check. | [Design files](#design-documents-and-previews), [UX](docs/ux-flow.md), and [testing](docs/testing.md). |
 | Live operation | Confirm budget, retention, hosting behaviour, and recovery evidence before public traffic. | [Operations guidance](docs/deployment-and-operations.md) and [safety release review](docs/safety-and-security.md#release-review). |
 
 Prerequisites block their affected phase, not every independent task. The linked owners retain exact values and acceptance rules. Existing design files are included in the plan; no duplicate guide is required. Backlog ideas and M2/M3 roadmap entries do not enter M1 without an explicit scope decision.
@@ -123,3 +125,8 @@ Use Node 24/npm 11. Run npm ci, npm run build, then npm run dev. Configure the i
 The app uses separate input classification, structured generation and output review, with code-authored refusals for clear exclusions. Sources remain empty in M1. The account limits are enforced at 30 requests/minute, 1,000/day, 8,000 total tokens/minute and 200,000/day. No automatic model retries occur.
 
 Pause/resume local generation with npm run generation:off / npm run generation:on. See [operations](docs/deployment-and-operations.md#phase-2-groq-local-operation), [testing evidence](docs/testing.md#phase-2-implementation-evidence), and [the plan](docs/phase-wise-implementation-plan.md). Deliberate npm run smoke:groq makes real calls using synthetic data; ordinary tests remain offline from Groq.
+
+
+## Phase 3 review handoff
+
+[Review disposition and core-question index](docs/evaluations/phase3-review.md) | [Dated reference pack](docs/evaluations/reference-pack-v1.md) | [Software evidence](docs/testing.md#phase-3-release-verification). Use `npm run eval:report` for a new private evidence packet and `npm run test:restore` for the isolated PostgreSQL archive rehearsal. Exact setup stays in the linked owners. Phase 3 is not release-cleared: human review and correction/regression of the recorded model failures remain required.

@@ -9,9 +9,11 @@ export function ChatInfo({
   diagnostics: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
   return (
     <>
       <button
+        ref={opener}
         className={styles.infoButton}
         onClick={() => dialog.current?.showModal()}
       >
@@ -19,6 +21,7 @@ export function ChatInfo({
       </button>
       <dialog
         ref={dialog}
+        onClose={() => opener.current?.focus()}
         className={`${styles.dialog} ${styles.infoDialog}`}
         aria-labelledby="about-title"
       >
@@ -34,6 +37,7 @@ export function ChatInfo({
           </button>
         </div>
         <section aria-labelledby="limits-title">
+          <p>An experimental project created by Priyank Agrawal.</p>
           <h3 id="limits-title">About the answers</h3>
           <p>Answers may be inaccurate. This version does not check sources.</p>
           <p>

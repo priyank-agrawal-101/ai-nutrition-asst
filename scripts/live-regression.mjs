@@ -32,7 +32,14 @@ function privatePath(value) {
   return path;
 }
 const priorFile = privatePath(process.env.LIVE_PRIOR_USAGE_FILE);
-const baselineFile = privatePath(process.env.LIVE_BASELINE_PROMPTS_FILE);
+const continuation = process.env.LIVE_CONTINUE_FROM
+  ? privatePath(process.env.LIVE_CONTINUE_FROM)
+  : null;
+if (process.env.LIVE_DIAGNOSTIC === "true" && !continuation)
+  throw new Error("Diagnostic runs require an earlier run directory");
+const baselineFile = continuation
+  ? null
+  : privatePath(process.env.LIVE_BASELINE_PROMPTS_FILE);
 const prior = JSON.parse(await readFile(priorFile, "utf8"));
 const priorTokens = [prior.local, ...prior.old.flatMap((r) => r.budget)].map(
   (b) => b.charged_tokens,
@@ -74,8 +81,17 @@ const run = randomUUID().replaceAll("-", ""),
 await mkdir(directory, { recursive: true });
 const manifest = {
   run,
+  channel: process.env.LIVE_DIAGNOSTIC === "true" ? "diagnostic" : "primary",
   purpose:
-    "Classifier v2 regression: fixed 39 turns, adopted policy extensions and old/new synthetic classifier probes; independent factual review remains pending",
+    process.env.LIVE_DIAGNOSTIC === "true"
+      ? "Separate diagnostic replay of previously failed groups; preserve all original primary outcomes"
+      : continuation
+        ? "Phase 3: only previously unrun policy extensions; preserve earlier primary outcomes and require unchanged model/prompt/policy configuration"
+        : "Classifier v2 regression: fixed 39 turns, adopted policy extensions and old/new synthetic classifier probes; independent factual review remains pending",
+  continuation_of: continuation
+    ? JSON.parse(await readFile(resolve(continuation, "manifest.json"), "utf8"))
+        .run
+    : null,
   created_at: new Date().toISOString(),
   build_id: (await readFile(".next/BUILD_ID", "utf8")).trim(),
   max_calls: maxCalls,
@@ -113,10 +129,18 @@ await writeFile(
   resolve(directory, "prior-usage.json"),
   await readFile(priorFile),
 );
-await writeFile(
-  resolve(directory, "old-prompts.json"),
-  await readFile(baselineFile),
-);
+if (continuation) {
+  for (const file of ["results.json", "configuration.json"])
+    await writeFile(
+      resolve(directory, `previous-${file}`),
+      await readFile(resolve(continuation, file)),
+      { flag: "wx", mode: 0o600 },
+    );
+} else
+  await writeFile(
+    resolve(directory, "old-prompts.json"),
+    await readFile(baselineFile),
+  );
 const cluster = await startCluster(resolve(directory, "cluster"));
 let admin,
   server,
@@ -181,6 +205,8 @@ try {
     __NEXT_PROCESSED_ENV: "true",
     NEXT_TELEMETRY_DISABLED: "1",
     LIVE_ARTIFACT_DIR: directory,
+    LIVE_CONTINUATION: String(Boolean(continuation)),
+    LIVE_DIAGNOSTIC: process.env.LIVE_DIAGNOSTIC === "true" ? "true" : "false",
   };
   // Isolated app and probes share the same durable ledger; local visitor app is stopped.
   server = child(

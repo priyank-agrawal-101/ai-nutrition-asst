@@ -1,8 +1,8 @@
 # Gusto NutriBite: Phase-wise Implementation Plan
 
-Status: Phase 1 complete. Phase 2 implemented and locally verified; manual screen-reader review remains before Phase 2 sign-off. Scoped Phase 3 classifier regression is in progress; factual release review and Phase 4 remain pending. M1 is not fully evaluated or publicly deployed.
+Status: Phase 1 complete. Phase 2 implemented; human screen-reader sign-off remains pending. Phase 3 baseline/extension capture, review tooling and isolated restore verification are implemented; policy/factual findings and human review prevent clearance. Phase 4 remains pending. M1 is not fully evaluated or publicly deployed.
 
-Last updated: 11 October 2026.
+Last updated: 13 October 2026.
 
 ## 1. Purpose, authority, and current state
 
@@ -14,7 +14,7 @@ The repository was audited on 11 October 2026 at local commit `ac648c8`. It cont
 
 The core specifications agree on structured output, null sources in M1, backend-only model calls, stored-message integrity, safety gates, and recovery. The approved corrections resolve proposed-scope ambiguity, defer manual deletion, align limits and history behavior, correct stale document handoffs, and separate pre-deployment clearance from deployed verification.
 
-The existing [Wise design reference](design-references/wise/DESIGN.md) and [HTML preview](design-references/wise/preview.html) were the original M1 starting point. On 11 October 2026 the owner authorized a complete frontend redesign independent of Wise, with motion, interactive elements and less prominent notices. [UX](ux-flow.md#visual-direction-and-information-hierarchy) now owns presentation. Preserve the original assets and the M1 scope; the empty Sources panel moves behind **About this chat**, as recorded against ANS-05 in the product specification.
+The existing [Wise design reference](design-references/wise/DESIGN.md) and [HTML preview](design-references/wise/preview.html) were the original M1 starting point. On 11 October 2026 the owner authorized a complete frontend redesign independent of Wise, with motion, interactive elements and less prominent notices. [UX](ux-flow.md#visual-direction-and-information-hierarchy) now owns presentation. Preserve the original assets and the M1 scope; Sources remains beside the conversation on desktop and below it on narrow screens, following the owner's 13 October correction of ANS-05.
 
 ## 2. Approved baseline and preparation
 
@@ -132,23 +132,26 @@ Keep the short [assignment comparison](problem-statement-alignment.md) as the re
 
 **Implementation evidence, 11 October 2026:** [Groq adapter](../src/server/llm/groq.ts), [versioned bundle](../src/server/prompts/bundle.ts), [safety rules](../src/server/safety/rules.ts), [constant templates](../src/server/safety/templates.ts), [account budget](../src/server/llm/budget.ts), [additive migration](../migrations/0002_provider_budget.sql), and [local UI](../src/app/page.tsx). The user's key stays in ignored .env. The original migration/design assets/fixed questions are unchanged. [Testing](testing.md#phase-2-implementation-evidence) separates software, failed initial smoke, corrected smoke and remaining human review. [Operations](deployment-and-operations.md#phase-2-groq-local-operation) owns setup, shutdown and limits.
 
-**Remaining sign-off:** Actual keyboard-plus-screen-reader listening review (EC-UI-09) could not be performed through the available tooling. Keyboard behavior, ARIA structure and responsive screenshots have automated/visual evidence; they are not a substitute for that required review. Accordingly Phase 2 is not marked Done. Scoped Phase 3 sample capture is recorded in the classifier regression; independent factual review and the release browser matrix remain pending.
+**Additional sign-off:** Actual keyboard-plus-screen-reader listening review (EC-UI-09) could not be performed through the available tooling. Keyboard behavior, ARIA structure and responsive screenshots have automated/visual evidence; they do not establish a listening review. This adopted additional check remains open, separately from explicit assignment requirements. The later Phase 3 entry records completed capture and browser-matrix evidence; independent human factual review remains distinct.
 
 **Frontend redesign, 11 October 2026:** Owner-authorized independent visual direction, interactive question starters, reduced-motion support and a compact **About this chat** information panel are implemented. Sources remain empty and accessible; routine completion banners are screen-reader-only. Build, 69 unit tests and 10 Chromium browser tests passed; [redesign evidence](testing.md#frontend-redesign-verification) records screenshot review and final narrow-screen verification. Saved data, provider quotas and model behavior are unchanged; no Groq calls were made. This does not close the human accessibility or broader release gates above.
 
 ### Phase 3 — Evaluation and release clearance
 
-**Status:** In progress for the owner-requested classifier regression; release clearance remains pending. **Depends on:** Phase 2, frozen evaluation configuration, live-run budget, reviewer, and controlled artifact storage.
+**Status:** Assignment evaluation recorded, 13 October. Ten-question findings/counts, the three-answer substance comparison and passing required scope tests are documented. Public-release disposition remains open for consequential food-safety findings and hosting preparation; additional human accessibility review is unperformed. **Depends on:** Phase 2, frozen evaluation configuration, live-run budget, reviewer, and controlled artifact storage.
+
+**Owner-directed scope clarification, 13 October:** record failures rather than patching around the assignment questions. The [assignment review](failure-log.md#assignment-baseline-review-13-october-2026) supersedes earlier recommendations to fix all six extension findings or finish a comprehensive fact/rating audit before proceeding with independent delivery preparation. Keep failures, immutable samples and fixed questions for M2. Do not change runtime policy, bypass validation, describe unperformed human checks as passes, or equate factual perfection with M1 completion.
 
 **Objective:** Establish the assignment's evidence baseline and clear required software, safety, privacy, and operating checks.
 
 **Tasks**
 
 - [x] Implement a small runner through the ordinary app API; freeze exact `Q01`–`Q10` wording.
-- [ ] Run the 39-turn baseline: ten core questions, three additional fresh `Q01` samples, and 26 safety/control turns. Run adopted policy extensions separately with recorded quota allocation and pacing.
-- [ ] Assemble dated authoritative references for human factual review, especially high-consequence food-safety claims. Keep them outside runtime M1 inputs.
+- [x] Capture the 39-turn baseline and all 29 adopted policy-extension turns separately with recorded quota allocation/pacing. Capture is complete; six extension cases lack passing conformance evidence. Original failures remain preserved.
+- [x] Assemble an initial dated reference pack and document consequential food-safety findings and evidence gaps. Keep references outside runtime M1 inputs; no complete external factual validation is claimed.
 - [x] Create `docs/failure-log.md` when actual runs begin; preserve responses, failures, versions, usage, grouped counts, and review findings.
-- [ ] Fix release blockers generally and rerun required regression under a new recorded version; never overwrite adverse observations.
+- [x] Record per-question F01-F05 findings, the three-response substance/numeric comparison and required refusal results from saved baseline evidence, with model-assisted authorship explicit.
+- [ ] Record the release disposition of consequential food-safety findings. Correct a genuine blocker generally if required by that disposition, with regression after any behavior change; do not automatically patch ordinary model failures.
 - [ ] Complete browser/accessibility, security, cleanup, restart, and isolated restoration checks.
 - [ ] Finalize operating limits, notices, provider/hosting data settings, and deployment instructions.
 
@@ -156,11 +159,13 @@ Keep the short [assignment comparison](problem-statement-alignment.md) as the re
 
 **Deliverables:** Reviewed baseline artifacts, grouped failure counts, three-answer comparison, software evidence, and a pre-deployment disposition.
 
-**Acceptance / definition of done:** Ten core outcomes and reviews are preserved; missing answers are addressed rather than hidden. Three fresh comparable answers have a completed factual/numerical comparison. Required safety cases produce expected safe responses; errors are not refusal passes. Required security/persistence/cleanup checks pass. Potentially harmful factual findings are resolved before public operation. Low-risk unsupported/inconsistent claims remain visible; no perfect-accuracy target is invented. Every evaluated prompt change has required regression evidence.
+**Acceptance / definition of done:** Ten core outcomes and assignment-category reviews/counts are preserved; missing answers are recorded rather than hidden. Three fresh comparable answers have a substance/numerical comparison. Required exclusion tests produce refusals with referrals; errors are not refusal passes. Required security/persistence/cleanup checks pass. Potentially harmful factual findings have a release disposition before public operation. Unsupported/inconsistent claims remain visible for M2; no perfect-accuracy target or requirement to fix every policy-extension observation is invented. Every evaluated prompt change has required regression evidence. Additional human accessibility and rubric checks are reported separately from explicit assignment requirements.
 
 **Verification:** `npm run check`, `npm run test:integration`, `npm run build`, `npm run test:e2e`, `npm run test:browser-matrix`, plus the actual evaluation entry point documented when implemented.
 
 **Risks:** Review workload, quota exhaustion, incomplete samples, and misleading aggregate scores. Use scripts and reviewed files, not a dashboard. The 169-case catalogue is not a requirement for 169 paid model evaluations.
+
+**Implementation evidence, 13 October 2026:** [Review disposition](evaluations/phase3-review.md), [initial dated reference pack](evaluations/reference-pack-v1.md), [report generator](../scripts/evaluation-report.ts), [continuation runner](../scripts/live-regression.ts), [archive restoration test](../tests/recovery/restore.test.ts), [additive restore correction](../migrations/0005_restore_validation.sql), and [software verification](testing.md#phase-3-release-verification). The owner authorized 120 calls/120,000 additional tokens and agreed to human factual/accessibility review; actual usage was 36 calls/46,981 tokens across primary and diagnostic runs. All six adverse primary outcomes remain unchanged. The initial reference pack and assisted consistency comparison are ready for review, but do not satisfy the full human fact/attribution ledger. Public configuration remains disabled; no Phase 4 work is claimed.
 
 ### Phase 4 — Deploy, verify, and close M1
 
@@ -197,7 +202,7 @@ Use checkboxes and short evidence notes in this plan. Task statuses are **Not st
 | --- | --- | --- |
 | 1 — Durable local chat foundation | Done: locally built and tested | [Phase 1 evidence](testing.md#phase-1-implementation-evidence): 19 unit, 20 integration, 2 Chromium; clean install/build and launcher health passed |
 | 2 — Complete local assistant | In progress: implemented; manual accessibility review pending | [Phase 2 evidence](testing.md#phase-2-implementation-evidence): Groq adapter/safety/UI, 58 unit, 38 integration, 10 Chromium tests; live probes and stored follow-up; screen-reader sign-off still required |
-| 3 — Evaluation and release clearance | In progress: scoped classifier regression | [Frozen runner and live run](evaluation.md#classifier-v2-regression); factual review and release clearance pending |
+| 3 — Evaluation and release clearance | Assignment records completed by model-assisted review; release disposition pending | [Ten-question counts, consistency and required refusals](failure-log.md#assignment-baseline-review-13-october-2026); consequential factual findings and public readiness remain explicit |
 | 4 — Deploy and verify | Not started | None |
 
 The subsequent [status and rate-limit repair](testing.md#status-and-rate-limit-repair-evidence) passed 61 unit, 45 integration and 9 Chromium tests (including all four viewport widths). It adds specific failure messages, durable cooldown and pre-acceptance quota checks. Original adverse observations remain in the failure log; this repair does not resolve the separate output-review diagnostic question or complete screen-reader sign-off.
